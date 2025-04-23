@@ -130,7 +130,8 @@ export const requestConnection = async (req: Request, res: Response) => {
     await storage.createNotification({
       type: 'connection_request',
       userId: followingId,
-      fromUserId: currentUserId
+      fromUserId: currentUserId,
+      isRead: false
     });
     
     return res.status(201).json({ message: 'Connection request sent' });
@@ -177,7 +178,8 @@ export const acceptConnection = async (req: Request, res: Response) => {
     await storage.createNotification({
       type: 'connection_accepted',
       userId: followerId,
-      fromUserId: currentUserId
+      fromUserId: currentUserId,
+      isRead: false
     });
     
     return res.status(200).json({ message: 'Connection accepted' });

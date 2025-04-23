@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Bell } from 'lucide-react';
+import { Bell, Check, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -9,13 +9,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { formatTimeAgo, getInitials } from '@/lib/utils';
 import { NotificationWithUser } from '@shared/types';
+import { toast } from '@/hooks/use-toast';
 
 export function NotificationsDropdown() {
   const [, navigate] = useLocation();
   const [hasUnread, setHasUnread] = useState(false);
+  const queryClient = useQueryClient();
   
   // Fetch notifications
   const { data: notifications, isLoading, error } = useQuery({
@@ -42,6 +45,66 @@ export function NotificationsDropdown() {
     }
   }, [notifications]);
   
+  // Handle accept connection request
+  const handleAcceptConnection = async (notification: NotificationWithUser, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent dropdown item click event
+    
+    try {
+      // Mark notification as read
+      if (!notification.isRead) {
+        await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+      }
+      
+      // Accept connection request
+      await apiRequest('POST', `/api/connections/accept/${notification.fromUserId}`);
+      
+      // Refresh notifications
+      await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      
+      toast({
+        title: "Connection accepted",
+        description: `You are now connected with ${notification.fromUser.username}`,
+      });
+    } catch (error) {
+      console.error('Failed to accept connection', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept connection request",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle reject connection request
+  const handleRejectConnection = async (notification: NotificationWithUser, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent dropdown item click event
+    
+    try {
+      // Mark notification as read
+      if (!notification.isRead) {
+        await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+      }
+      
+      // Reject connection request (delete the connection)
+      await apiRequest('DELETE', `/api/connections/request/${notification.fromUserId}`);
+      
+      // Refresh notifications
+      await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      
+      toast({
+        title: "Connection rejected",
+        description: `Connection request from ${notification.fromUser.username} was rejected`,
+      });
+    } catch (error) {
+      console.error('Failed to reject connection', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject connection request",
+        variant: "destructive"
+      });
+    }
+  };
+  
   // Handle notification click
   const handleNotificationClick = async (notification: NotificationWithUser) => {
     try {
@@ -61,6 +124,7 @@ export function NotificationsDropdown() {
           break;
         case 'follow':
         case 'follow_request':
+        case 'connection_request':
           navigate(`/profile/${notification.fromUser.username}`);
           break;
         default:
@@ -86,6 +150,10 @@ export function NotificationsDropdown() {
         return `${username} started following you`;
       case 'follow_request':
         return `${username} requested to follow you`;
+      case 'connection_request':
+        return `${username} sent you a connection request`;
+      case 'connection_accepted':
+        return `${username} accepted your connection request`;
       case 'save':
         return `${username} saved your post`;
       default:
@@ -132,6 +200,30 @@ export function NotificationsDropdown() {
                 <p className="text-xs text-gray-500 mt-1">
                   {formatTimeAgo(notification.createdAt || new Date())}
                 </p>
+                
+                {/* Show accept/reject buttons for connection requests */}
+                {notification.type === 'connection_request' && (
+                  <div className="flex gap-2 mt-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-600 border-green-200"
+                      onClick={(e) => handleAcceptConnection(notification, e)}
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                      onClick={(e) => handleRejectConnection(notification, e)}
+                    >
+                      <X className="h-3 w-3" />
+                      Reject
+                    </Button>
+                  </div>
+                )}
               </div>
             </DropdownMenuItem>
           ))
