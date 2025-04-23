@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Link } from 'wouter';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PostWithDetails } from '@shared/types';
-import { Grid, Bookmark, User2 } from 'lucide-react';
+import { Grid, Bookmark, User2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 interface ProfilePostsProps {
@@ -11,8 +12,25 @@ interface ProfilePostsProps {
 
 export function ProfilePosts({ posts, username }: ProfilePostsProps) {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'saved' | 'tagged'>('posts');
   const isOwnProfile = user?.username === username;
+  const queryClient = useQueryClient();
+  
+  // Fetch saved posts when the saved tab is active
+  const { 
+    data: savedPosts, 
+    isLoading: savedPostsLoading, 
+    isError: savedPostsError 
+  } = useQuery<PostWithDetails[]>({
+    queryKey: ['/api/posts/saved'],
+    enabled: activeTab === 'saved' && isOwnProfile,
+  });
+  
+  // Handle post click
+  const handlePostClick = (postId: number) => {
+    navigate(`/post/${postId}`);
+  };
   
   return (
     <>
@@ -57,7 +75,7 @@ export function ProfilePosts({ posts, username }: ProfilePostsProps) {
         posts.length > 0 ? (
           <div className="post-grid p-1 md:p-4">
             {posts.map((post) => (
-              <div key={post.id} className="aspect-w-1 aspect-h-1 cursor-pointer" onClick={() => window.location.href = `/post/${post.id}`}>
+              <div key={post.id} className="aspect-w-1 aspect-h-1 cursor-pointer" onClick={() => handlePostClick(post.id)}>
                 <img 
                   src={post.mediaUrl} 
                   alt={post.altText || 'Post image'} 
@@ -93,7 +111,7 @@ export function ProfilePosts({ posts, username }: ProfilePostsProps) {
             </p>
             {isOwnProfile && (
               <button 
-                onClick={() => window.location.href = '/post'}
+                onClick={() => navigate('/post')}
                 className="mt-6 px-6 py-3 rounded-lg pixie-gradient text-white font-medium hover:shadow-md transition"
               >
                 Share Your First Photo
@@ -104,15 +122,57 @@ export function ProfilePosts({ posts, username }: ProfilePostsProps) {
       )}
       
       {activeTab === 'saved' && isOwnProfile && (
-        <div className="flex flex-col items-center justify-center p-12 text-center">
-          <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <Bookmark className="h-10 w-10 text-gray-400" />
+        savedPostsLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-10 w-10 text-gray-400 animate-spin" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">Save</h3>
-          <p className="text-gray-500 max-w-sm">
-            Save photos and videos that you want to see again. No one is notified, and only you can see what you've saved.
-          </p>
-        </div>
+        ) : savedPostsError ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <Bookmark className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Error Loading Saved Posts</h3>
+            <p className="text-red-500 max-w-sm">
+              Failed to load saved posts. Please try again later.
+            </p>
+          </div>
+        ) : savedPosts && savedPosts.length > 0 ? (
+          <div className="post-grid p-1 md:p-4">
+            {savedPosts.map((post) => (
+              <div key={post.id} className="aspect-w-1 aspect-h-1 cursor-pointer" onClick={() => handlePostClick(post.id)}>
+                <img 
+                  src={post.mediaUrl} 
+                  alt={post.altText || 'Post image'} 
+                  className="w-full h-full object-cover"
+                />
+                <div className="opacity-0 hover:opacity-100 absolute inset-0 bg-black/30 flex items-center justify-center text-white transition-opacity pointer-events-none">
+                  <span className="mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                    {post.likeCount || 0}
+                  </span>
+                  <span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    {post.commentCount || 0}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <Bookmark className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Saved Posts</h3>
+            <p className="text-gray-500 max-w-sm">
+              Save photos and videos that you want to see again. No one is notified, and only you can see what you've saved.
+            </p>
+          </div>
+        )
       )}
       
       {activeTab === 'tagged' && (

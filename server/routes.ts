@@ -66,6 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Post routes
   app.post('/api/posts', requireAuth, postController.createPost);
+  app.get('/api/posts/saved', requireAuth, postController.getSavedPosts);
   app.get('/api/posts/:id', requireAuth, postController.getPost);
   app.delete('/api/posts/:id', requireAuth, postController.deletePost);
   app.post('/api/posts/:id/like', requireAuth, postController.likePost);
@@ -74,7 +75,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/posts/:id/comment/:commentId', requireAuth, postController.deleteComment);
   app.post('/api/posts/:id/save', requireAuth, postController.savePost);
   app.delete('/api/posts/:id/save', requireAuth, postController.unsavePost);
-  app.get('/api/posts/saved', requireAuth, postController.getSavedPosts);
   app.get('/api/feed', requireAuth, postController.getFeed);
   
   // Chat routes
