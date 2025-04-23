@@ -16,7 +16,7 @@ import {
   type InsertAiImage,
   type ProfileSetup
 } from "@shared/schema";
-import { ConnectionWithUser, UserWithStats, PostWithDetails, ChatInfo } from "@shared/types";
+import { ConnectionWithUser, UserWithStats, PostWithDetails, CommentWithUser, ChatInfo } from "@shared/types";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -24,6 +24,7 @@ import { ConnectionWithUser, UserWithStats, PostWithDetails, ChatInfo } from "@s
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
+  getUserWithStats(userId: number): Promise<UserWithStats | null>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -33,6 +34,7 @@ export interface IStorage {
   // Post methods
   createPost(post: InsertPost): Promise<Post>;
   getPostById(id: number): Promise<Post | undefined>;
+  getPostWithUserDetails(postId: number): Promise<PostWithDetails | null>;
   deletePost(id: number): Promise<void>;
   getUserPosts(userId: number): Promise<Post[]>;
   getFeedPosts(userIds: number[]): Promise<Post[]>;
@@ -45,6 +47,7 @@ export interface IStorage {
   getCommentById(id: number): Promise<Comment | undefined>;
   deleteComment(id: number): Promise<void>;
   getPostComments(postId: number): Promise<Comment[]>;
+  getPostCommentsWithUserDetails(postId: number): Promise<CommentWithUser[]>;
   
   // Like methods
   createLike(like: InsertLike): Promise<Like>;
@@ -115,6 +118,26 @@ export class MemStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
+  
+  async getUserWithStats(userId: number): Promise<UserWithStats | null> {
+    const user = await this.getUser(userId);
+    
+    if (!user) return null;
+    
+    const postCount = Array.from(this.posts.values())
+      .filter(post => post.userId === userId)
+      .length;
+      
+    const followerCount = await this.getFollowerCount(userId);
+    const followingCount = await this.getFollowingCount(userId);
+    
+    return {
+      ...user,
+      postCount,
+      followerCount,
+      followingCount
+    };
+  }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
@@ -170,6 +193,30 @@ export class MemStorage implements IStorage {
   
   async getPostById(id: number): Promise<Post | undefined> {
     return this.posts.get(id);
+  }
+  
+  async getPostWithUserDetails(postId: number): Promise<PostWithDetails | null> {
+    const post = await this.getPostById(postId);
+    if (!post) return null;
+    
+    const user = await this.getUser(post.userId);
+    if (!user) return null;
+    
+    const likeCount = await this.getPostLikeCount(postId);
+    const commentCount = await this.getPostCommentCount(postId);
+    
+    return {
+      ...post,
+      user: {
+        id: user.id,
+        username: user.username,
+        profileImage: user.profileImage
+      },
+      likeCount,
+      commentCount,
+      isLiked: false, // This will be set by the controller based on the current user
+      comments: [] // Comments will be loaded separately if needed
+    };
   }
   
   async deletePost(id: number): Promise<void> {
@@ -234,6 +281,24 @@ export class MemStorage implements IStorage {
     return Array.from(this.comments.values())
       .filter(comment => comment.postId === postId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+  
+  async getPostCommentsWithUserDetails(postId: number): Promise<CommentWithUser[]> {
+    const comments = await this.getPostComments(postId);
+    
+    return Promise.all(comments.map(async (comment) => {
+      const user = await this.getUser(comment.userId);
+      if (!user) throw new Error(`User ${comment.userId} not found`);
+      
+      return {
+        ...comment,
+        user: {
+          id: user.id,
+          username: user.username,
+          profileImage: user.profileImage
+        }
+      };
+    }));
   }
   
   // Like methods

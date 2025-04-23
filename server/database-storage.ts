@@ -31,7 +31,7 @@ import {
   type InsertAiImage,
   type ProfileSetup
 } from '@shared/schema';
-import { ConnectionWithUser, UserWithStats, PostWithDetails, ChatInfo } from '@shared/types';
+import { ConnectionWithUser, UserWithStats, PostWithDetails, CommentWithUser, ChatInfo } from '@shared/types';
 import { IStorage } from './storage';
 
 export class DatabaseStorage implements IStorage {
