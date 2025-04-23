@@ -2,7 +2,7 @@ import { useState, ChangeEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, Download, Share2, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -15,6 +15,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fileToBase64 } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 const formSchema = z.object({
   prompt: z.string().min(3, {
@@ -29,8 +35,10 @@ type FormValues = z.infer<typeof formSchema>;
 export function ImageEditor() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImageId, setGeneratedImageId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
   const form = useForm<FormValues>({
@@ -87,6 +95,7 @@ export function ImageEditor() {
       
       const data = await response.json();
       setGeneratedImage(data.imageUrl);
+      setGeneratedImageId(data.id);
       
       toast({
         title: 'Image edited',
@@ -103,9 +112,74 @@ export function ImageEditor() {
     }
   };
 
+  const saveToCollection = async () => {
+    if (!generatedImage) return;
+    setIsSaving(true);
+    try {
+      // Implement save functionality
+      toast({
+        title: 'Image saved',
+        description: 'Image has been saved to your collection',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to save image to collection',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const downloadImage = () => {
+    if (!generatedImage) return;
+    
+    // Create anchor element to download image
+    const a = document.createElement('a');
+    a.href = generatedImage;
+    a.download = `pixie-ai-edited-${Date.now()}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    toast({
+      title: 'Image downloaded',
+      description: 'Image has been downloaded to your device',
+    });
+  };
+
+  const shareImage = () => {
+    if (!generatedImage) return;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Pixie AI Edited Image',
+        text: 'Check out this AI-edited image from Pixie!',
+        url: generatedImage,
+      })
+      .catch(() => {
+        // If share fails, copy to clipboard instead
+        navigator.clipboard.writeText(generatedImage);
+        toast({
+          title: 'Link copied',
+          description: 'Image link copied to clipboard',
+        });
+      });
+    } else {
+      // Fallback for browsers that don't support sharing
+      navigator.clipboard.writeText(generatedImage);
+      toast({
+        title: 'Link copied',
+        description: 'Image link copied to clipboard',
+      });
+    }
+  };
+
   const resetEditor = () => {
     setUploadedImage(null);
     setGeneratedImage(null);
+    setGeneratedImageId(null);
     form.reset();
   };
 

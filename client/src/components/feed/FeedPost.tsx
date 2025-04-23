@@ -267,6 +267,7 @@ export function FeedPost({ post }: FeedPostProps) {
           </Avatar>
           <div className="flex-1 relative">
             <Input
+              ref={commentInputRef}
               type="text"
               placeholder="Add a comment..."
               className="w-full px-3 py-2 bg-gray-50 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-[#5851DB]/50"
