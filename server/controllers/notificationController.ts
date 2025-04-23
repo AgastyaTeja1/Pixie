@@ -49,24 +49,36 @@ export const getNotifications = async (req: Request, res: Response) => {
 export const markNotificationAsRead = async (req: Request, res: Response) => {
   try {
     const { notificationId } = req.params;
+    const userId = req.session.userId;
+    
+    console.log(`Controller: Marking notification as read - ID: ${notificationId}, User ID: ${userId}`);
     
     // Check if notificationId is valid
     if (!notificationId || isNaN(parseInt(notificationId))) {
+      console.error(`Controller: Invalid notification ID: ${notificationId}`);
       return res.status(400).json({ message: 'Invalid notification ID' });
     }
     
     const id = parseInt(notificationId);
     
-    // Log the notification ID being processed
-    console.log(`Marking notification as read, ID: ${id}`);
+    try {
+      await storage.markNotificationAsRead(id);
+      console.log(`Controller: Successfully marked notification ${id} as read`);
+      return res.status(200).json({ message: 'Notification marked as read', success: true });
+    } catch (storageError: any) {
+      console.error('Controller: Storage error when marking notification as read:', storageError);
+      return res.status(500).json({ 
+        message: 'Failed to mark notification as read due to storage error', 
+        error: storageError.message || 'Unknown error' 
+      });
+    }
     
-    await storage.markNotificationAsRead(id);
-    
-    return res.status(200).json({ message: 'Notification marked as read' });
-    
-  } catch (error) {
-    console.error('Mark notification as read error:', error);
-    return res.status(500).json({ message: 'Failed to mark notification as read' });
+  } catch (error: any) {
+    console.error('Controller: Unexpected error in markNotificationAsRead:', error);
+    return res.status(500).json({ 
+      message: 'Failed to mark notification as read', 
+      error: error.message || 'Unknown error' 
+    });
   }
 };
 
@@ -75,13 +87,31 @@ export const markAllNotificationsAsRead = async (req: Request, res: Response) =>
   try {
     const userId = req.session.userId!;
     
-    await storage.markAllNotificationsAsRead(userId);
+    console.log(`Controller: Marking all notifications as read for user ${userId}`);
     
-    return res.status(200).json({ message: 'All notifications marked as read' });
+    if (!userId || isNaN(userId)) {
+      console.error(`Controller: Invalid user ID for marking all notifications: ${userId}`);
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
     
-  } catch (error) {
-    console.error('Mark all notifications as read error:', error);
-    return res.status(500).json({ message: 'Failed to mark all notifications as read' });
+    try {
+      await storage.markAllNotificationsAsRead(userId);
+      console.log(`Controller: Successfully marked all notifications as read for user ${userId}`);
+      return res.status(200).json({ message: 'All notifications marked as read', success: true });
+    } catch (storageError: any) {
+      console.error('Controller: Storage error when marking all notifications as read:', storageError);
+      return res.status(500).json({ 
+        message: 'Failed to mark all notifications as read due to storage error',
+        error: storageError.message || 'Unknown error'
+      });
+    }
+    
+  } catch (error: any) {
+    console.error('Controller: Unexpected error in markAllNotificationsAsRead:', error);
+    return res.status(500).json({ 
+      message: 'Failed to mark all notifications as read',
+      error: error.message || 'Unknown error'
+    });
   }
 };
 
@@ -94,8 +124,11 @@ export const getUnreadNotificationCount = async (req: Request, res: Response) =>
     
     return res.status(200).json({ count });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get unread notification count error:', error);
-    return res.status(500).json({ message: 'Failed to fetch unread notification count' });
+    return res.status(500).json({ 
+      message: 'Failed to fetch unread notification count',
+      error: error.message || 'Unknown error'
+    });
   }
 };
