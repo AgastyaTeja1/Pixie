@@ -23,6 +23,7 @@ export interface PostWithDetails extends Post {
   likeCount: number;
   commentCount: number;
   isLiked: boolean;
+  isSaved?: boolean;
   comments?: CommentWithUser[];
 }
 

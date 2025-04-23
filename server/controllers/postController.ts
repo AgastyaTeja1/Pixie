@@ -288,6 +288,9 @@ export const getFeed = async (req: Request, res: Response) => {
         // Check if current user liked the post
         const isLiked = await storage.hasUserLikedPost(currentUserId, post.id);
         
+        // Check if current user saved the post
+        const isSaved = await storage.isPostSavedByUser(currentUserId, post.id);
+        
         return {
           ...post,
           user: {
@@ -297,7 +300,8 @@ export const getFeed = async (req: Request, res: Response) => {
           },
           likeCount,
           commentCount,
-          isLiked
+          isLiked,
+          isSaved
         };
       })
     );
@@ -307,5 +311,100 @@ export const getFeed = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Get feed error:', error);
     return res.status(500).json({ message: 'Failed to fetch feed' });
+  }
+};
+
+// Save a post
+export const savePost = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.session.userId!;
+    
+    // Check if post exists
+    const post = await storage.getPostById(parseInt(id));
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    
+    // Check if already saved
+    const isSaved = await storage.isPostSavedByUser(currentUserId, parseInt(id));
+    if (isSaved) {
+      return res.status(400).json({ message: 'Post already saved' });
+    }
+    
+    // Save post
+    await storage.savePost(currentUserId, parseInt(id));
+    
+    // Create notification for post owner
+    if (post.userId !== currentUserId) {
+      await storage.createNotification({
+        userId: post.userId,
+        fromUserId: currentUserId,
+        type: 'save',
+        entityId: parseInt(id)
+      });
+    }
+    
+    return res.status(201).json({ message: 'Post saved successfully' });
+    
+  } catch (error) {
+    console.error('Save post error:', error);
+    return res.status(500).json({ message: 'Failed to save post' });
+  }
+};
+
+// Unsave a post
+export const unsavePost = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.session.userId!;
+    
+    // Check if post exists
+    const post = await storage.getPostById(parseInt(id));
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    
+    // Check if saved
+    const isSaved = await storage.isPostSavedByUser(currentUserId, parseInt(id));
+    if (!isSaved) {
+      return res.status(400).json({ message: 'Post not saved' });
+    }
+    
+    // Unsave post
+    await storage.unsavePost(currentUserId, parseInt(id));
+    
+    return res.status(200).json({ message: 'Post unsaved successfully' });
+    
+  } catch (error) {
+    console.error('Unsave post error:', error);
+    return res.status(500).json({ message: 'Failed to unsave post' });
+  }
+};
+
+// Get saved posts
+export const getSavedPosts = async (req: Request, res: Response) => {
+  try {
+    const currentUserId = req.session.userId!;
+    
+    // Get saved posts
+    const savedPosts = await storage.getSavedPosts(currentUserId);
+    
+    // Check if current user liked each post
+    const savedPostsWithLikeStatus = await Promise.all(
+      savedPosts.map(async (post) => {
+        const isLiked = await storage.hasUserLikedPost(currentUserId, post.id);
+        return {
+          ...post,
+          isLiked
+        };
+      })
+    );
+    
+    return res.status(200).json(savedPostsWithLikeStatus);
+    
+  } catch (error) {
+    console.error('Get saved posts error:', error);
+    return res.status(500).json({ message: 'Failed to fetch saved posts' });
   }
 };
