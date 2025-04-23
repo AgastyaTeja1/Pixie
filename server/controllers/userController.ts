@@ -126,6 +126,13 @@ export const requestConnection = async (req: Request, res: Response) => {
       status: 'pending'
     });
     
+    // Create notification for the user receiving the connection request
+    await storage.createNotification({
+      type: 'connection_request',
+      userId: followingId,
+      fromUserId: currentUserId
+    });
+    
     return res.status(201).json({ message: 'Connection request sent' });
     
   } catch (error) {
@@ -165,6 +172,13 @@ export const acceptConnection = async (req: Request, res: Response) => {
     } else if (existingReverseConnection.status === 'pending') {
       await storage.updateConnectionStatus(currentUserId, followerId, 'accepted');
     }
+    
+    // Create notification for the user whose request was accepted
+    await storage.createNotification({
+      type: 'connection_accepted',
+      userId: followerId,
+      fromUserId: currentUserId
+    });
     
     return res.status(200).json({ message: 'Connection accepted' });
     
