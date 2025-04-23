@@ -16,6 +16,7 @@ import Chat from "@/pages/Chat";
 import Post from "@/pages/Post";
 import Profile from "@/pages/Profile";
 import AI from "@/pages/AI";
+import Search from "@/pages/Search";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/profile/:username" component={Profile} />
       <Route path="/ai" component={AI} />
+      <Route path="/search" component={Search} />
       <Route component={NotFound} />
     </Switch>
   );

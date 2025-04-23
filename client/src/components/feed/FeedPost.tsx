@@ -274,9 +274,22 @@ export function FeedPost({ post }: FeedPostProps) {
           </p>
         )}
         
-        {post.commentCount > 0 && (
+        {post.comments && post.comments.length > 0 && (
+          <div className="mt-2">
+            {post.comments.slice(0, 2).map((comment, index) => (
+              <p key={comment.id} className="text-sm">
+                <Link href={`/profile/${comment.user.username}`}>
+                  <a className="font-medium">{comment.user.username}</a>
+                </Link>{' '}
+                {comment.comment}
+              </p>
+            ))}
+          </div>
+        )}
+        
+        {post.commentCount > (post.comments?.length || 0) && (
           <p 
-            className="text-gray-500 text-sm mt-2 cursor-pointer hover:text-gray-700"
+            className="text-gray-500 text-sm mt-1 cursor-pointer hover:text-gray-700"
             onClick={() => navigate(`/post/${post.id}`)}
           >
             View all {post.commentCount} comments

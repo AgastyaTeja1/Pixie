@@ -23,7 +23,14 @@ export function MobileNav() {
     <>
       {/* Mobile Search - Only visible on small screens */}
       <div className="block md:hidden bg-white border-b border-gray-200 pt-16 px-4 py-2 fixed w-full z-40">
-        <div className="relative">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          const input = e.currentTarget.querySelector('input');
+          const query = input?.value?.trim();
+          if (query) {
+            window.location.href = `/search?q=${encodeURIComponent(query)}`;
+          }
+        }} className="relative">
           <input
             type="text"
             placeholder="Search"
@@ -43,7 +50,7 @@ export function MobileNav() {
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
-        </div>
+        </form>
       </div>
 
       {/* Mobile Navigation */}
