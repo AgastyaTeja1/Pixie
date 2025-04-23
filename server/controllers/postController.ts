@@ -150,6 +150,17 @@ export const likePost = async (req: Request, res: Response) => {
       userId: currentUserId
     });
     
+    // Create notification for post owner if not liking own post
+    if (post.userId !== currentUserId) {
+      await storage.createNotification({
+        type: 'like',
+        userId: post.userId,
+        fromUserId: currentUserId,
+        entityId: parseInt(id),
+        isRead: false
+      });
+    }
+    
     return res.status(201).json({ message: 'Post liked successfully' });
     
   } catch (error) {
@@ -211,6 +222,17 @@ export const addComment = async (req: Request, res: Response) => {
     
     // Get user for the comment
     const user = await storage.getUser(currentUserId);
+    
+    // Create notification for post owner if not commenting on own post
+    if (post.userId !== currentUserId) {
+      await storage.createNotification({
+        type: 'comment',
+        userId: post.userId,
+        fromUserId: currentUserId,
+        entityId: post.id,
+        isRead: false
+      });
+    }
     
     // Return comment with user details
     return res.status(201).json({

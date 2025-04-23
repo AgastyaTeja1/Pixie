@@ -13,6 +13,7 @@ import * as userController from "./controllers/userController";
 import * as postController from "./controllers/postController";
 import * as chatController from "./controllers/chatController";
 import * as aiController from "./controllers/aiController";
+import * as notificationController from "./controllers/notificationController";
 
 const SessionStore = MemoryStore(session);
 
@@ -88,6 +89,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/generate', requireAuth, aiController.generateImage);
   app.post('/api/ai/edit', requireAuth, aiController.editImage);
   app.post('/api/ai/style', requireAuth, aiController.applyStyle);
+  
+  // Notification routes
+  app.get('/api/notifications', requireAuth, notificationController.getNotifications);
+  app.post('/api/notifications/read/:notificationId', requireAuth, notificationController.markNotificationAsRead);
+  app.post('/api/notifications/read/all', requireAuth, notificationController.markAllNotificationsAsRead);
+  app.get('/api/notifications/unread/count', requireAuth, notificationController.getUnreadNotificationCount);
 
   return httpServer;
 }
