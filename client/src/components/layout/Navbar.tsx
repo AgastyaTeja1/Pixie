@@ -90,16 +90,70 @@ export function Navbar() {
           </div>
           
           <div className="hidden md:block flex-1 max-w-md mx-4">
-            <form onSubmit={handleSearch} className="relative">
-              <Input
-                type="text"
-                placeholder="Search"
-                className="w-full px-4 py-2 pl-10 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5851DB]/50"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
-            </form>
+            <div className="relative" ref={suggestionRef}>
+              <form onSubmit={handleSearch} className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search"
+                  className="w-full px-4 py-2 pl-10 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5851DB]/50"
+                  value={searchQuery}
+                  onChange={handleInputChange}
+                  onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
+                {searchQuery && (
+                  <button 
+                    type="button"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowSuggestions(false);
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </form>
+              
+              {/* Search Suggestions */}
+              {showSuggestions && searchQuery.length >= 2 && (
+                <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200 max-h-80 overflow-y-auto">
+                  {searchLoading ? (
+                    <div className="p-3 text-center text-gray-500">Loading...</div>
+                  ) : searchResults && searchResults.length > 0 ? (
+                    <div className="py-1">
+                      {searchResults.map((user) => (
+                        <div 
+                          key={user.id} 
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                          onClick={() => handleUserSelect(user.username)}
+                        >
+                          <Avatar className="h-8 w-8 mr-3">
+                            <AvatarImage src={user.profileImage || ''} alt={user.username} />
+                            <AvatarFallback>{getInitials(user.fullName || user.username)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{user.username}</div>
+                            {user.fullName && <div className="text-sm text-gray-500">{user.fullName}</div>}
+                          </div>
+                        </div>
+                      ))}
+                      <div 
+                        className="px-4 py-2 text-center text-[#5851DB] border-t border-gray-100 font-medium hover:bg-gray-50 cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSearch(e as React.FormEvent);
+                        }}
+                      >
+                        View all results
+                      </div>
+                    </div>
+                  ) : searchQuery.length >= 2 ? (
+                    <div className="p-3 text-center text-gray-500">No users found</div>
+                  ) : null}
+                </div>
+              )}
+            </div>
           </div>
           
           <nav className="flex items-center space-x-5">
