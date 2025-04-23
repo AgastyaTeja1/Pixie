@@ -37,17 +37,60 @@ import { IStorage } from './storage';
 export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id));
+    const result = await db.select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
     return result[0];
+  }
+  
+  // Get user with their stats in a single query
+  async getUserWithStats(userId: number): Promise<UserWithStats | null> {
+    // First get the user
+    const user = await this.getUser(userId);
+    
+    if (!user) return null;
+    
+    // Then get counts
+    const [postCount, followerCount, followingCount] = await Promise.all([
+      // Count posts
+      db.select({ count: count() }).from(posts).where(eq(posts.userId, userId))
+        .then(result => result[0]?.count || 0),
+      
+      // Count followers
+      db.select({ count: count() })
+        .from(connections)
+        .where(and(eq(connections.followingId, userId), eq(connections.status, 'accepted')))
+        .then(result => result[0]?.count || 0),
+      
+      // Count following
+      db.select({ count: count() })
+        .from(connections)
+        .where(and(eq(connections.followerId, userId), eq(connections.status, 'accepted')))
+        .then(result => result[0]?.count || 0)
+    ]);
+    
+    return {
+      ...user,
+      postCount,
+      followerCount,
+      followingCount
+    };
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username));
+    const result = await db.select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
     return result[0];
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.email, email));
+    const result = await db.select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
     return result[0];
   }
 
@@ -92,11 +135,15 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getPostById(id: number): Promise<Post | undefined> {
-    const result = await db.select().from(posts).where(eq(posts.id, id));
+    const result = await db.select()
+      .from(posts)
+      .where(eq(posts.id, id))
+      .limit(1);
     return result[0];
   }
   
   async deletePost(id: number): Promise<void> {
+    // With proper foreign key constraints, this would cascade
     // Delete related comments and likes first
     await db.delete(comments).where(eq(comments.postId, id));
     await db.delete(likes).where(eq(likes.postId, id));
@@ -119,6 +166,39 @@ export class DatabaseStorage implements IStorage {
       .from(posts)
       .where(sql`${posts.userId} IN (${userIds.join(',')})`)
       .orderBy(desc(posts.createdAt));
+  }
+  
+  // Get post with user data in a single query (used for post details)
+  async getPostWithUserDetails(postId: number): Promise<PostWithDetails | null> {
+    const result = await db.select({
+      post: posts,
+      user: {
+        id: users.id,
+        username: users.username,
+        profileImage: users.profileImage
+      }
+    })
+    .from(posts)
+    .where(eq(posts.id, postId))
+    .innerJoin(users, eq(posts.userId, users.id))
+    .limit(1);
+    
+    if (!result[0]) return null;
+    
+    const { post, user } = result[0];
+    
+    // Get like and comment counts
+    const likeCount = await this.getPostLikeCount(postId);
+    const commentCount = await this.getPostCommentCount(postId);
+    
+    return {
+      ...post,
+      user,
+      likeCount,
+      commentCount,
+      isLiked: false, // This will be set by the controller based on the current user
+      comments: [] // Comments will be loaded separately if needed
+    };
   }
   
   async getPostLikeCount(postId: number): Promise<number> {
@@ -157,7 +237,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getCommentById(id: number): Promise<Comment | undefined> {
-    const result = await db.select().from(comments).where(eq(comments.id, id));
+    const result = await db.select()
+      .from(comments)
+      .where(eq(comments.id, id))
+      .limit(1);
     return result[0];
   }
   
@@ -170,6 +253,27 @@ export class DatabaseStorage implements IStorage {
       .from(comments)
       .where(eq(comments.postId, postId))
       .orderBy(comments.createdAt);
+  }
+  
+  // Get comments with user data in a single query
+  async getPostCommentsWithUserDetails(postId: number): Promise<CommentWithUser[]> {
+    const results = await db.select({
+      comment: comments,
+      user: {
+        id: users.id,
+        username: users.username,
+        profileImage: users.profileImage
+      }
+    })
+    .from(comments)
+    .where(eq(comments.postId, postId))
+    .innerJoin(users, eq(comments.userId, users.id))
+    .orderBy(comments.createdAt);
+    
+    return results.map(({ comment, user }) => ({
+      ...comment,
+      user
+    }));
   }
   
   // Like methods
@@ -202,7 +306,8 @@ export class DatabaseStorage implements IStorage {
           eq(connections.followerId, followerId),
           eq(connections.followingId, followingId)
         )
-      );
+      )
+      .limit(1);
       
     return result[0];
   }
