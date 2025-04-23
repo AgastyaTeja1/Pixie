@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 
+// Extend Session type to include userId
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+  }
+}
+
 // Get notifications for the current user
 export const getNotifications = async (req: Request, res: Response) => {
   try {
@@ -42,6 +49,12 @@ export const getNotifications = async (req: Request, res: Response) => {
 export const markNotificationAsRead = async (req: Request, res: Response) => {
   try {
     const { notificationId } = req.params;
+    
+    // Check if notificationId is valid
+    if (!notificationId || isNaN(parseInt(notificationId))) {
+      return res.status(400).json({ message: 'Invalid notification ID' });
+    }
+    
     const id = parseInt(notificationId);
     
     await storage.markNotificationAsRead(id);

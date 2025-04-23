@@ -43,22 +43,33 @@ export function NotificationsDropdown() {
   }, [notifications]);
   
   // Handle notification click
-  const handleNotificationClick = (notification: NotificationWithUser) => {
-    // Navigate based on notification type
-    switch (notification.type) {
-      case 'like':
-      case 'comment':
-      case 'save':
-        if (notification.entityId) {
-          navigate(`/post/${notification.entityId}`);
-        }
-        break;
-      case 'follow':
-      case 'follow_request':
-        navigate(`/profile/${notification.fromUser.username}`);
-        break;
-      default:
-        navigate('/feed');
+  const handleNotificationClick = async (notification: NotificationWithUser) => {
+    try {
+      // Mark notification as read if it's not already
+      if (!notification.isRead) {
+        await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+      }
+      
+      // Navigate based on notification type
+      switch (notification.type) {
+        case 'like':
+        case 'comment':
+        case 'save':
+          if (notification.entityId) {
+            navigate(`/post/${notification.entityId}`);
+          }
+          break;
+        case 'follow':
+        case 'follow_request':
+          navigate(`/profile/${notification.fromUser.username}`);
+          break;
+        default:
+          navigate('/feed');
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read', error);
+      // Still navigate even if marking as read failed
+      navigate(`/profile/${notification.fromUser.username}`);
     }
   };
   
