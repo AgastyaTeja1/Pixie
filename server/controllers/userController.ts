@@ -78,12 +78,12 @@ export const getUserProfile = async (req: Request, res: Response) => {
 // Search users
 export const searchUsers = async (req: Request, res: Response) => {
   try {
-    const { query } = req.query;
-    if (!query || typeof query !== 'string') {
+    const { q } = req.query;
+    if (!q || typeof q !== 'string') {
       return res.status(400).json({ message: 'Search query is required' });
     }
     
-    const users = await storage.searchUsers(query);
+    const users = await storage.searchUsers(q);
     
     // Remove passwords from results
     const sanitizedUsers = users.map(({ password, ...user }) => user);
