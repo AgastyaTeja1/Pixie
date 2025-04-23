@@ -15,6 +15,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { fileToBase64 } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -34,6 +35,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function ImageEditor() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);

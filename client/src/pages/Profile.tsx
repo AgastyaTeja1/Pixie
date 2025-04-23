@@ -23,13 +23,17 @@ export default function Profile() {
   }, [isAuthenticated, navigate]);
 
   // Get profile data
-  const { data: profileData, isLoading, error } = useQuery({
+  const { data: profileData, isLoading, error } = useQuery<UserWithStats>({
     queryKey: [`/api/users/profile/${username}`],
     enabled: !!isAuthenticated && !!username,
   });
 
   // Get connection status 
-  const { data: connectionStatus, isLoading: connectionLoading } = useQuery({
+  const { data: connectionStatus, isLoading: connectionLoading } = useQuery<{
+    isConnected: boolean;
+    isPending: boolean;
+    hasPendingRequest: boolean;
+  }>({
     queryKey: [`/api/connections/status/${profileData?.id}`],
     enabled: !!isAuthenticated && !!profileData && user && profileData.id !== user.id,
   });
