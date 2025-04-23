@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
-import { generateImage, editImage, applyStyle } from '../services/openAIService';
+import { 
+  generateImage as generateAIImage, 
+  editImage as editAIImage, 
+  applyStyle as applyAIStyle 
+} from '../services/openAIService';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 
@@ -30,7 +34,7 @@ export const generateImage = async (req: Request, res: Response) => {
     const { prompt } = generateImageSchema.parse(req.body);
     
     // Generate image
-    const imageUrl = await generateImage(prompt);
+    const imageUrl = await generateAIImage(prompt);
     
     // Save to database
     const aiImage = await storage.createAiImage({
@@ -65,7 +69,7 @@ export const editImage = async (req: Request, res: Response) => {
     const { image, prompt } = editImageSchema.parse(req.body);
     
     // Edit image
-    const editedImageUrl = await editImage(image, prompt);
+    const editedImageUrl = await editAIImage(image, prompt);
     
     // Save to database
     const aiImage = await storage.createAiImage({
@@ -100,7 +104,7 @@ export const applyStyle = async (req: Request, res: Response) => {
     const { image, style } = styleImageSchema.parse(req.body);
     
     // Apply style
-    const styledImageUrl = await applyStyle(image, style);
+    const styledImageUrl = await applyAIStyle(image, style);
     
     // Save to database
     const aiImage = await storage.createAiImage({
