@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
+import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 import { 
   Home, MessageCircle, PlusSquare, Wand2, 
   LogOut, User, Settings, Search
@@ -85,6 +86,8 @@ export function Navbar() {
                 <Wand2 size={24} />
               </a>
             </Link>
+            
+            <NotificationsDropdown />
             
             <DropdownMenu>
               <DropdownMenuTrigger className="focus:outline-none">

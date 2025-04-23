@@ -28,7 +28,7 @@ export function FeedPost({ post }: FeedPostProps) {
   const [location, navigate] = useLocation();
   const [comment, setComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.isLiked);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [isSendingComment, setIsSendingComment] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -54,14 +54,36 @@ export function FeedPost({ post }: FeedPostProps) {
     }
   };
 
-  const handleSavePost = () => {
-    setIsSaved(prev => !prev);
-    toast({
-      title: isSaved ? 'Post removed from saved' : 'Post saved',
-      description: isSaved 
-        ? 'Post has been removed from your saved collection' 
-        : 'Post has been added to your saved collection',
-    });
+  const handleSavePost = async () => {
+    try {
+      if (isSaved) {
+        // Unsave post
+        await apiRequest('DELETE', `/api/posts/${post.id}/save`);
+        setIsSaved(false);
+        toast({
+          title: 'Post removed from saved',
+          description: 'Post has been removed from your saved collection',
+        });
+      } else {
+        // Save post
+        await apiRequest('POST', `/api/posts/${post.id}/save`);
+        setIsSaved(true);
+        toast({
+          title: 'Post saved',
+          description: 'Post has been added to your saved collection',
+        });
+      }
+      // Invalidate saved posts query if it exists
+      queryClient.invalidateQueries({ queryKey: ['/api/posts/saved'] });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: isSaved 
+          ? 'Failed to remove post from saved' 
+          : 'Failed to save post',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSharePost = () => {
@@ -253,7 +275,10 @@ export function FeedPost({ post }: FeedPostProps) {
         )}
         
         {post.commentCount > 0 && (
-          <p className="text-gray-500 text-sm mt-2">
+          <p 
+            className="text-gray-500 text-sm mt-2 cursor-pointer hover:text-gray-700"
+            onClick={() => navigate(`/post/${post.id}`)}
+          >
             View all {post.commentCount} comments
           </p>
         )}
