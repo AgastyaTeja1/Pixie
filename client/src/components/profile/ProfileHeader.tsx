@@ -8,6 +8,7 @@ import { getInitials } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { EditProfileDialog } from './EditProfileDialog';
 
 interface ProfileHeaderProps {
   profileUser: UserWithStats;
@@ -31,6 +32,7 @@ export function ProfileHeader({
     hasPendingRequest
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   
   const isOwnProfile = user?.id === profileUser.id;
   
@@ -112,6 +114,14 @@ export function ProfileHeader({
 
   return (
     <div className="p-6 md:p-8">
+      {isOwnProfile && user && (
+        <EditProfileDialog 
+          open={editProfileOpen} 
+          onOpenChange={setEditProfileOpen} 
+          user={user} 
+        />
+      )}
+      
       <div className="flex flex-col md:flex-row items-center">
         <Avatar className="h-24 w-24 md:h-32 md:w-32 border-2 border-white shadow-md mb-4 md:mb-0 md:mr-8">
           <AvatarImage src={profileUser.profileImage || ''} />
@@ -126,7 +136,12 @@ export function ProfileHeader({
             <div className="md:ml-4 space-x-2 flex justify-center md:justify-start">
               {isOwnProfile ? (
                 <>
-                  <Button variant="outline" size="sm" className="px-4 py-1.5 rounded-lg">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="px-4 py-1.5 rounded-lg"
+                    onClick={() => setEditProfileOpen(true)}
+                  >
                     <Edit3 className="h-4 w-4 mr-2" /> Edit Profile
                   </Button>
                   <Button variant="outline" size="icon" className="p-1.5 rounded-lg">
@@ -158,11 +173,11 @@ export function ProfileHeader({
             </div>
             <div className="text-center">
               <p className="font-semibold">{profileUser.followerCount}</p>
-              <p className="text-sm text-gray-500">Followers</p>
+              <p className="text-sm text-gray-500">Connected</p>
             </div>
             <div className="text-center">
               <p className="font-semibold">{profileUser.followingCount}</p>
-              <p className="text-sm text-gray-500">Following</p>
+              <p className="text-sm text-gray-500">Connecting</p>
             </div>
           </div>
           
