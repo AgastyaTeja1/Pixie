@@ -1,4 +1,4 @@
-import { eq, and, desc, or, like, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, or, like, sql, gte, lte, count } from 'drizzle-orm';
 import { db } from './db';
 import { 
   users, 
@@ -8,6 +8,13 @@ import {
   connections, 
   messages, 
   aiImages,
+  usersRelations,
+  postsRelations,
+  commentsRelations,
+  likesRelations,
+  connectionsRelations,
+  messagesRelations,
+  aiImagesRelations,
   type User,
   type InsertUser,
   type Post,

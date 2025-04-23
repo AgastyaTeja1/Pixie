@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // Users table
 export const users = pgTable("users", {
@@ -14,6 +15,18 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define user relations
+export const usersRelations = relations(users, ({ many }) => ({
+  posts: many(posts),
+  comments: many(comments),
+  likes: many(likes),
+  followedBy: many(connections, { relationName: "follower" }),
+  following: many(connections, { relationName: "following" }),
+  sentMessages: many(messages, { relationName: "sender" }),
+  receivedMessages: many(messages, { relationName: "receiver" }),
+  aiImages: many(aiImages),
+}));
+
 // Posts table
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -25,6 +38,16 @@ export const posts = pgTable("posts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define post relations
+export const postsRelations = relations(posts, ({ one, many }) => ({
+  user: one(users, {
+    fields: [posts.userId],
+    references: [users.id],
+  }),
+  comments: many(comments),
+  likes: many(likes),
+}));
+
 // Comments table
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
@@ -34,6 +57,18 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define comment relations
+export const commentsRelations = relations(comments, ({ one }) => ({
+  post: one(posts, {
+    fields: [comments.postId],
+    references: [posts.id],
+  }),
+  user: one(users, {
+    fields: [comments.userId],
+    references: [users.id],
+  }),
+}));
+
 // Likes table
 export const likes = pgTable("likes", {
   id: serial("id").primaryKey(),
@@ -41,6 +76,18 @@ export const likes = pgTable("likes", {
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Define like relations
+export const likesRelations = relations(likes, ({ one }) => ({
+  post: one(posts, {
+    fields: [likes.postId],
+    references: [posts.id],
+  }),
+  user: one(users, {
+    fields: [likes.userId],
+    references: [users.id],
+  }),
+}));
 
 // Connections table (follows/connections)
 export const connections = pgTable("connections", {
@@ -50,6 +97,20 @@ export const connections = pgTable("connections", {
   status: text("status").notNull().default("pending"), // pending, accepted, rejected
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Define connection relations
+export const connectionsRelations = relations(connections, ({ one }) => ({
+  follower: one(users, {
+    fields: [connections.followerId],
+    references: [users.id],
+    relationName: "follower",
+  }),
+  following: one(users, {
+    fields: [connections.followingId],
+    references: [users.id],
+    relationName: "following",
+  }),
+}));
 
 // Messages table
 export const messages = pgTable("messages", {
@@ -61,6 +122,20 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define message relations
+export const messagesRelations = relations(messages, ({ one }) => ({
+  sender: one(users, {
+    fields: [messages.senderId],
+    references: [users.id],
+    relationName: "sender",
+  }),
+  receiver: one(users, {
+    fields: [messages.receiverId],
+    references: [users.id],
+    relationName: "receiver",
+  }),
+}));
+
 // AI Generated Images table
 export const aiImages = pgTable("ai_images", {
   id: serial("id").primaryKey(),
@@ -71,6 +146,14 @@ export const aiImages = pgTable("ai_images", {
   sourceImageUrl: text("source_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Define AI image relations
+export const aiImagesRelations = relations(aiImages, ({ one }) => ({
+  user: one(users, {
+    fields: [aiImages.userId],
+    references: [users.id],
+  }),
+}));
 
 // Schemas for validation and types
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
