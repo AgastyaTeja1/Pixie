@@ -8,6 +8,8 @@ import {
   connections, 
   messages, 
   aiImages,
+  savedPosts,
+  notifications,
   usersRelations,
   postsRelations,
   commentsRelations,
@@ -15,6 +17,8 @@ import {
   connectionsRelations,
   messagesRelations,
   aiImagesRelations,
+  savedPostsRelations,
+  notificationsRelations,
   type User,
   type InsertUser,
   type Post,
@@ -29,6 +33,10 @@ import {
   type InsertMessage,
   type AiImage,
   type InsertAiImage,
+  type SavedPost,
+  type InsertSavedPost,
+  type Notification,
+  type InsertNotification,
   type ProfileSetup
 } from '@shared/schema';
 import { ConnectionWithUser, UserWithStats, PostWithDetails, CommentWithUser, ChatInfo } from '@shared/types';
@@ -558,5 +566,128 @@ export class DatabaseStorage implements IStorage {
   async createAiImage(aiImage: InsertAiImage): Promise<AiImage> {
     const result = await db.insert(aiImages).values(aiImage).returning();
     return result[0];
+  }
+  
+  async getAiImagesByUser(userId: number): Promise<AiImage[]> {
+    return db.select()
+      .from(aiImages)
+      .where(eq(aiImages.userId, userId))
+      .orderBy(desc(aiImages.createdAt));
+  }
+  
+  // Saved Posts methods
+  async savePost(userId: number, postId: number): Promise<SavedPost> {
+    const result = await db.insert(savedPosts)
+      .values({ userId, postId })
+      .returning();
+    return result[0];
+  }
+  
+  async unsavePost(userId: number, postId: number): Promise<void> {
+    await db.delete(savedPosts)
+      .where(
+        and(
+          eq(savedPosts.userId, userId),
+          eq(savedPosts.postId, postId)
+        )
+      );
+  }
+  
+  async getSavedPosts(userId: number): Promise<PostWithDetails[]> {
+    // Get all saved posts with their details
+    const results = await db.select({
+      post: posts,
+      user: {
+        id: users.id,
+        username: users.username,
+        profileImage: users.profileImage
+      },
+      savedPost: savedPosts
+    })
+    .from(savedPosts)
+    .where(eq(savedPosts.userId, userId))
+    .innerJoin(posts, eq(savedPosts.postId, posts.id))
+    .innerJoin(users, eq(posts.userId, users.id))
+    .orderBy(desc(savedPosts.createdAt));
+    
+    // For each post, get like and comment counts
+    const postsWithDetails = await Promise.all(
+      results.map(async ({ post, user }) => {
+        const likeCount = await this.getPostLikeCount(post.id);
+        const commentCount = await this.getPostCommentCount(post.id);
+        
+        return {
+          ...post,
+          user,
+          likeCount,
+          commentCount,
+          isLiked: false, // This will be set by the controller
+          comments: [] // Comments will be loaded separately if needed
+        };
+      })
+    );
+    
+    return postsWithDetails;
+  }
+  
+  async isPostSavedByUser(userId: number, postId: number): Promise<boolean> {
+    const result = await db.select()
+      .from(savedPosts)
+      .where(
+        and(
+          eq(savedPosts.userId, userId),
+          eq(savedPosts.postId, postId)
+        )
+      );
+      
+    return result.length > 0;
+  }
+  
+  // Notification methods
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const result = await db.insert(notifications)
+      .values({
+        ...notification,
+        isRead: false
+      })
+      .returning();
+    return result[0];
+  }
+  
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return db.select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+  }
+  
+  async markNotificationAsRead(notificationId: number): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, notificationId));
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      );
+  }
+  
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      );
+      
+    return result[0]?.count || 0;
   }
 }

@@ -1,4 +1,4 @@
-import { User, Post, Comment, Message, Connection, AiImage } from "./schema";
+import { User, Post, Comment, Message, Connection, AiImage, Notification } from "./schema";
 
 // Auth types
 export interface AuthResponse {
@@ -95,4 +95,18 @@ export interface ArtStyle {
   id: string;
   name: string;
   imageUrl: string;
+}
+
+// Notification types
+export interface NotificationWithUser extends Notification {
+  fromUser: {
+    id: number;
+    username: string;
+    profileImage: string | null;
+  };
+}
+
+export interface NotificationCount {
+  total: number;
+  unread: number;
 }
