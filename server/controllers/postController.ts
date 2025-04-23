@@ -282,6 +282,9 @@ export const getFeed = async (req: Request, res: Response) => {
         // Get likes count
         const likeCount = await storage.getPostLikeCount(post.id);
         
+        // Get comments with user details
+        const comments = await storage.getPostCommentsWithUserDetails(post.id);
+        
         // Get comments count
         const commentCount = await storage.getPostCommentCount(post.id);
         
@@ -300,6 +303,7 @@ export const getFeed = async (req: Request, res: Response) => {
           },
           likeCount,
           commentCount,
+          comments: comments.slice(0, 2), // Include the 2 most recent comments
           isLiked,
           isSaved
         };
@@ -390,18 +394,24 @@ export const getSavedPosts = async (req: Request, res: Response) => {
     // Get saved posts
     const savedPosts = await storage.getSavedPosts(currentUserId);
     
-    // Check if current user liked each post
-    const savedPostsWithLikeStatus = await Promise.all(
+    // Enhance posts with additional information
+    const savedPostsWithDetails = await Promise.all(
       savedPosts.map(async (post) => {
+        // Check if current user liked the post
         const isLiked = await storage.hasUserLikedPost(currentUserId, post.id);
+        
+        // Get comments with user details (2 most recent)
+        const comments = await storage.getPostCommentsWithUserDetails(post.id);
+        
         return {
           ...post,
-          isLiked
+          isLiked,
+          comments: comments.slice(0, 2)
         };
       })
     );
     
-    return res.status(200).json(savedPostsWithLikeStatus);
+    return res.status(200).json(savedPostsWithDetails);
     
   } catch (error) {
     console.error('Get saved posts error:', error);

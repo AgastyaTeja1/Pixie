@@ -17,6 +17,7 @@ import Post from "@/pages/Post";
 import Profile from "@/pages/Profile";
 import AI from "@/pages/AI";
 import Search from "@/pages/Search";
+import PostDetail from "@/pages/PostDetail";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/profile/:username" component={Profile} />
       <Route path="/ai" component={AI} />
       <Route path="/search" component={Search} />
+      <Route path="/post/:id" component={PostDetail} />
       <Route component={NotFound} />
     </Switch>
   );
