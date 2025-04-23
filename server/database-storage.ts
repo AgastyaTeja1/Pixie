@@ -176,6 +176,12 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(posts.createdAt));
   }
   
+  async getAllPosts(): Promise<Post[]> {
+    return db.select()
+      .from(posts)
+      .orderBy(desc(posts.createdAt));
+  }
+  
   // Get post with user data in a single query (used for post details)
   async getPostWithUserDetails(postId: number): Promise<PostWithDetails | null> {
     const result = await db.select({

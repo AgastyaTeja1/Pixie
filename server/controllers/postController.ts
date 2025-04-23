@@ -267,15 +267,9 @@ export const getFeed = async (req: Request, res: Response) => {
   try {
     const currentUserId = req.session.userId!;
     
-    // Get connected users
-    const connections = await storage.getUserConnections(currentUserId);
-    const connectedUserIds = connections.map(connection => connection.userId);
-    
-    // Include current user posts as well
-    const userIds = [...connectedUserIds, currentUserId];
-    
-    // Get posts from connected users
-    const posts = await storage.getFeedPosts(userIds);
+    // Get all posts for the feed, regardless of connection status
+    // This ensures users see all posts in the system
+    const posts = await storage.getAllPosts();
     
     // Enrich posts with details
     const postsWithDetails = await Promise.all(

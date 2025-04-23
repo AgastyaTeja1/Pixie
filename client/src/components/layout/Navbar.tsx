@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,13 +15,38 @@ import { getInitials } from '@/lib/utils';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 import { 
   Home, MessageCircle, PlusSquare, Wand2, 
-  LogOut, User, Settings, Search
+  LogOut, User, Settings, Search, X
 } from 'lucide-react';
 
 export function Navbar() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionRef = useRef<HTMLDivElement>(null);
+  
+  // Search suggestions
+  const { 
+    data: searchResults, 
+    isLoading: searchLoading 
+  } = useQuery({
+    queryKey: [`/api/users/search?q=${encodeURIComponent(searchQuery)}`],
+    enabled: searchQuery.length >= 2 && isAuthenticated && showSuggestions,
+  });
+
+  // Handle click outside suggestions
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const isActive = (path: string) => {
     if (path === '/feed' && location === '/feed') return true;
@@ -34,8 +60,21 @@ export function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
+      setShowSuggestions(false);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowSuggestions(value.length >= 2);
+  };
+  
+  const handleUserSelect = (username: string) => {
+    setSearchQuery('');
+    setShowSuggestions(false);
+    navigate(`/profile/${username}`);
   };
 
   if (!isAuthenticated) return null;

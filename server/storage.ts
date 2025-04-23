@@ -38,6 +38,7 @@ export interface IStorage {
   deletePost(id: number): Promise<void>;
   getUserPosts(userId: number): Promise<Post[]>;
   getFeedPosts(userIds: number[]): Promise<Post[]>;
+  getAllPosts(): Promise<Post[]>;
   getPostLikeCount(postId: number): Promise<number>;
   getPostCommentCount(postId: number): Promise<number>;
   hasUserLikedPost(userId: number, postId: number): Promise<boolean>;
@@ -263,6 +264,11 @@ export class MemStorage implements IStorage {
   async getFeedPosts(userIds: number[]): Promise<Post[]> {
     return Array.from(this.posts.values())
       .filter(post => userIds.includes(post.userId))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  
+  async getAllPosts(): Promise<Post[]> {
+    return Array.from(this.posts.values())
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
   
