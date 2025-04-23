@@ -56,6 +56,9 @@ export const getPost = async (req: Request, res: Response) => {
     // Check if current user liked the post
     const isLiked = await storage.hasUserLikedPost(currentUserId, post.id);
     
+    // Check if current user saved the post
+    const isSaved = await storage.isPostSavedByUser(currentUserId, post.id);
+    
     // Get comments for the post
     const comments = await storage.getPostComments(post.id);
     
@@ -85,6 +88,7 @@ export const getPost = async (req: Request, res: Response) => {
       likeCount,
       commentCount,
       isLiked,
+      isSaved,
       comments: commentsWithUser
     });
     
