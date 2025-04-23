@@ -50,15 +50,22 @@ export function NotificationsDropdown() {
     e.stopPropagation(); // Prevent dropdown item click event
     
     try {
+      console.log('Accepting connection request, notification ID:', notification.id);
+      
       // Mark notification as read
       if (!notification.isRead) {
-        await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+        console.log('Marking notification as read...');
+        const response = await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+        console.log('Mark as read response:', await response.text());
       }
       
       // Accept connection request
-      await apiRequest('POST', `/api/connections/accept/${notification.fromUserId}`);
+      console.log('Accepting connection from user ID:', notification.fromUserId);
+      const acceptResponse = await apiRequest('POST', `/api/connections/accept/${notification.fromUserId}`);
+      console.log('Accept connection response:', await acceptResponse.text());
       
       // Refresh notifications
+      console.log('Refreshing notifications...');
       await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       
       toast({
@@ -108,12 +115,22 @@ export function NotificationsDropdown() {
   // Handle notification click
   const handleNotificationClick = async (notification: NotificationWithUser) => {
     try {
+      console.log('Handling notification click:', notification);
+      
       // Mark notification as read if it's not already
       if (!notification.isRead) {
-        await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+        console.log('Marking notification as read, ID:', notification.id);
+        try {
+          const response = await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+          const responseText = await response.text();
+          console.log('Mark as read response:', responseText);
+        } catch (markError) {
+          console.error('Error marking notification as read:', markError);
+        }
       }
       
       // Navigate based on notification type
+      console.log('Navigating based on notification type:', notification.type);
       switch (notification.type) {
         case 'like':
         case 'comment':
@@ -131,7 +148,7 @@ export function NotificationsDropdown() {
           navigate('/feed');
       }
     } catch (error) {
-      console.error('Failed to mark notification as read', error);
+      console.error('Failed to handle notification click', error);
       // Still navigate even if marking as read failed
       navigate(`/profile/${notification.fromUser.username}`);
     }

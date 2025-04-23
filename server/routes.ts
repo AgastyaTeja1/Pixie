@@ -95,8 +95,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Notification routes
   app.get('/api/notifications', requireAuth, notificationController.getNotifications);
-  app.post('/api/notifications/read/:notificationId', requireAuth, notificationController.markNotificationAsRead);
   app.post('/api/notifications/read/all', requireAuth, notificationController.markAllNotificationsAsRead);
+  app.post('/api/notifications/read/:notificationId', requireAuth, notificationController.markNotificationAsRead);
   app.get('/api/notifications/unread/count', requireAuth, notificationController.getUnreadNotificationCount);
 
   return httpServer;
