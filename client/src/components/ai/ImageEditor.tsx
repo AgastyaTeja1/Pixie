@@ -190,12 +190,36 @@ export function ImageEditor() {
       
       {generatedImage ? (
         <div className="space-y-4">
-          <div className="rounded-lg overflow-hidden bg-white shadow-md">
+          <div className="rounded-lg overflow-hidden bg-white shadow-md relative">
             <img 
               src={generatedImage} 
               alt="AI Edited" 
               className="w-full h-auto"
             />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+              <div className="flex justify-between items-center">
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={saveToCollection}
+                    className="text-white hover:text-[#5851DB] transition"
+                  >
+                    <Bookmark className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={downloadImage}
+                    className="text-white hover:text-[#5851DB] transition"
+                  >
+                    <Download className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={shareImage}
+                    className="text-white hover:text-[#5851DB] transition"
+                  >
+                    <Share2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="flex space-x-3">

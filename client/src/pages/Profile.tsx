@@ -6,7 +6,7 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfilePosts } from '@/components/profile/ProfilePosts';
 import { useAuth } from '@/hooks/use-auth';
-import { UserWithStats } from '@shared/types';
+import { UserWithStats, PostWithDetails } from '@shared/types';
 import { Loader2 } from 'lucide-react';
 
 export default function Profile() {
@@ -31,7 +31,7 @@ export default function Profile() {
   // Get connection status 
   const { data: connectionStatus, isLoading: connectionLoading } = useQuery({
     queryKey: [`/api/connections/status/${profileData?.id}`],
-    enabled: !!isAuthenticated && !!profileData && profileData.id !== user?.id,
+    enabled: !!isAuthenticated && !!profileData && user && profileData.id !== user.id,
   });
 
   if (!isAuthenticated) {
