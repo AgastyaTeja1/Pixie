@@ -57,6 +57,9 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
     
     const id = parseInt(notificationId);
     
+    // Log the notification ID being processed
+    console.log(`Marking notification as read, ID: ${id}`);
+    
     await storage.markNotificationAsRead(id);
     
     return res.status(200).json({ message: 'Notification marked as read' });

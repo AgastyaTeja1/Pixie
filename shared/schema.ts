@@ -209,7 +209,7 @@ export const insertConnectionSchema = createInsertSchema(connections).omit({ id:
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true, isRead: true });
 export const insertAiImageSchema = createInsertSchema(aiImages).omit({ id: true, createdAt: true });
 export const insertSavedPostSchema = createInsertSchema(savedPosts).omit({ id: true, createdAt: true });
-export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, isRead: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 
 // Login schema
 export const loginSchema = z.object({

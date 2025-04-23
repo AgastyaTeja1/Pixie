@@ -21,7 +21,7 @@ export function NotificationsDropdown() {
   const queryClient = useQueryClient();
   
   // Fetch notifications
-  const { data: notifications, isLoading, error } = useQuery({
+  const { data: notifications, isLoading, error } = useQuery<NotificationWithUser[]>({
     queryKey: ['/api/notifications'],
   });
   

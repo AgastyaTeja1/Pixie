@@ -668,20 +668,44 @@ export class DatabaseStorage implements IStorage {
   }
   
   async markNotificationAsRead(notificationId: number): Promise<void> {
-    await db.update(notifications)
-      .set({ isRead: true })
-      .where(eq(notifications.id, notificationId));
+    console.log(`Database: Marking notification as read, ID: ${notificationId}`);
+    
+    if (isNaN(notificationId)) {
+      throw new Error(`Invalid notification ID: ${notificationId}`);
+    }
+    
+    try {
+      await db.update(notifications)
+        .set({ isRead: true })
+        .where(eq(notifications.id, notificationId));
+      console.log('Database: Successfully marked notification as read');
+    } catch (error) {
+      console.error('Database error marking notification as read:', error);
+      throw error;
+    }
   }
   
   async markAllNotificationsAsRead(userId: number): Promise<void> {
-    await db.update(notifications)
-      .set({ isRead: true })
-      .where(
-        and(
-          eq(notifications.userId, userId),
-          eq(notifications.isRead, false)
-        )
-      );
+    console.log(`Database: Marking all notifications as read for user ID: ${userId}`);
+    
+    if (isNaN(userId)) {
+      throw new Error(`Invalid user ID: ${userId}`);
+    }
+    
+    try {
+      await db.update(notifications)
+        .set({ isRead: true })
+        .where(
+          and(
+            eq(notifications.userId, userId),
+            eq(notifications.isRead, false)
+          )
+        );
+      console.log('Database: Successfully marked all notifications as read');
+    } catch (error) {
+      console.error('Database error marking all notifications as read:', error);
+      throw error;
+    }
   }
   
   async getUnreadNotificationCount(userId: number): Promise<number> {
