@@ -115,10 +115,24 @@ export function ImageEditor() {
   };
 
   const saveToCollection = async () => {
-    if (!generatedImage) return;
+    if (!generatedImage || !user) return;
     setIsSaving(true);
     try {
-      // Implement save functionality
+      // Save the image to user's collection
+      if (generatedImageId) {
+        // If we already have an ID, we can just update the saved status
+        await apiRequest('POST', `/api/ai/images/${generatedImageId}/save`, {
+          userId: user.id
+        });
+      } else {
+        // Otherwise create a new saved image entry
+        await apiRequest('POST', '/api/ai/images/save', {
+          imageUrl: generatedImage,
+          userId: user.id,
+          prompt: form.getValues().prompt || 'AI edited image'
+        });
+      }
+      
       toast({
         title: 'Image saved',
         description: 'Image has been saved to your collection',
@@ -203,9 +217,14 @@ export function ImageEditor() {
                 <div className="flex space-x-3">
                   <button 
                     onClick={saveToCollection}
+                    disabled={isSaving}
                     className="text-white hover:text-[#5851DB] transition"
                   >
-                    <Bookmark className="h-5 w-5" />
+                    {isSaving ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Bookmark className="h-5 w-5" />
+                    )}
                   </button>
                   <button 
                     onClick={downloadImage}
