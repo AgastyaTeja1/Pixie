@@ -1,0 +1,27 @@
+Build an Instagram clone. Make it exactly the same. Below I have given few points that you need to consider for building this:
+
+1. I want you to change the name from Instagram to "Pixie".
+
+2. I want a landing page which tells about the application and option to sign in or sign up which when clicked redirects to the login page. I want the UI to be very beautiful, eye catching, trendy and futuristic.
+
+3. I want to have a login page with proper authentication.
+
+4. If the user is logging in for the first then they should first build their profile like username, profile picture and bio. Only the username is mandatory is here. The user should have the ability to edit his profile anytime by visiting the profile window.
+
+5.  I want to have five different windows like profile, chat, post, feed and AI. 
+
+6. Profile window should be the same like Instagram profile window, and everything should be functional and working. One more thing to add in the profile section is the Connect button. This is used to connect with other people, when both accept each others connect request they get the option to chat with each other.
+
+7. Chat window shows the people you can chat with. People who are connected will only appear in the chat window and will have the option to message each other.
+
+8. Post window is used to post anything.
+
+9. We should be able to access the feed window by clicking on Pixie. 
+
+10. AI window will have the option to create image using user prompt/text. The user can just give a pompt/text to generate complete image from scratch or can upload an image and ask to edit and generate a new image from the given one. Also the user should have the option to upload any picture and choose from different art styles like ghibli art, pixiel art, oil painting and others and get their image generated in that art style. For any generated image the user should have the option to post, save or discard it. I have OpenAI API key can use that.
+
+11. I dont want you to create any dummy or fake users. 
+
+12. In the feed window I want the search bar to be functional. I want the like comment and share options like instagram for every post.
+
+13. I want you to make the whole UI very beautiful, eye catching, trendy and futuristic.
