@@ -97,10 +97,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signup = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
+      // Generate a temporary username from the email (before the @ symbol)
+      const tempUsername = email.split('@')[0] + Math.floor(Math.random() * 1000);
+      
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName }),
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          fullName,
+          username: tempUsername // Add temporary username
+        }),
         credentials: 'include'
       });
 
