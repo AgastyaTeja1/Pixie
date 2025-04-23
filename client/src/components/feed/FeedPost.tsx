@@ -1,15 +1,21 @@
-import { useState } from 'react';
-import { Link } from 'wouter';
+import { useState, useRef } from 'react';
+import { Link, useLocation } from 'wouter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatTimeAgo, getInitials } from '@/lib/utils';
 import { PostWithDetails } from '@shared/types';
 import { useAuth } from '@/hooks/use-auth';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Trash2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface FeedPostProps {
   post: PostWithDetails;
@@ -19,10 +25,14 @@ export function FeedPost({ post }: FeedPostProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, navigate] = useLocation();
   const [comment, setComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.isLiked);
+  const [isSaved, setIsSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [isSendingComment, setIsSendingComment] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   const handleLike = async () => {
     try {
@@ -41,6 +51,70 @@ export function FeedPost({ post }: FeedPostProps) {
         description: 'Failed to like post',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleSavePost = () => {
+    setIsSaved(prev => !prev);
+    toast({
+      title: isSaved ? 'Post removed from saved' : 'Post saved',
+      description: isSaved 
+        ? 'Post has been removed from your saved collection' 
+        : 'Post has been added to your saved collection',
+    });
+  };
+
+  const handleSharePost = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${post.user.username}'s post on Pixie`,
+        text: post.caption || 'Check out this post on Pixie',
+        url: window.location.href,
+      })
+      .catch(() => {
+        // If share fails, copy to clipboard instead
+        navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: 'Link copied',
+          description: 'Post link copied to clipboard',
+        });
+      });
+    } else {
+      // Fallback for browsers that don't support sharing
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: 'Link copied',
+        description: 'Post link copied to clipboard',
+      });
+    }
+  };
+
+  const focusCommentInput = () => {
+    if (commentInputRef.current) {
+      commentInputRef.current.focus();
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (isDeleting) return;
+    
+    setIsDeleting(true);
+    try {
+      await apiRequest('DELETE', `/api/posts/${post.id}`);
+      queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      toast({
+        title: 'Post deleted',
+        description: 'Your post has been deleted successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete post',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -86,9 +160,41 @@ export function FeedPost({ post }: FeedPostProps) {
             </div>
           </a>
         </Link>
-        <button className="ml-auto text-gray-500">
-          <MoreHorizontal className="h-5 w-5" />
-        </button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="ml-auto text-gray-500 hover:text-gray-700">
+              <MoreHorizontal className="h-5 w-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem 
+              onClick={() => navigate(`/post/${post.id}`)}
+              className="cursor-pointer"
+            >
+              View details
+            </DropdownMenuItem>
+            
+            {user && post.user.id === user.id && (
+              <DropdownMenuItem 
+                onClick={handleDeletePost}
+                className="cursor-pointer text-red-500 focus:text-red-500"
+              >
+                {isDeleting ? (
+                  <span className="flex items-center">
+                    <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+                    Deleting...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete post
+                  </span>
+                )}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       
       <div className="aspect-w-1 aspect-h-1 bg-gray-100">
@@ -111,14 +217,27 @@ export function FeedPost({ post }: FeedPostProps) {
               <Heart className="h-6 w-6" />
             )}
           </button>
-          <button className="text-2xl text-gray-700 hover:text-[#5851DB]">
+          <button 
+            className="text-2xl text-gray-700 hover:text-[#5851DB]"
+            onClick={focusCommentInput}
+          >
             <MessageCircle className="h-6 w-6" />
           </button>
-          <button className="text-2xl text-gray-700 hover:text-[#FCAF45]">
+          <button 
+            className="text-2xl text-gray-700 hover:text-[#FCAF45]"
+            onClick={handleSharePost}
+          >
             <Share2 className="h-6 w-6" />
           </button>
-          <button className="text-2xl ml-auto text-gray-700 hover:text-[#5851DB]">
-            <Bookmark className="h-6 w-6" />
+          <button 
+            className={`text-2xl ml-auto ${isSaved ? 'text-[#5851DB]' : 'text-gray-700 hover:text-[#5851DB]'}`}
+            onClick={handleSavePost}
+          >
+            {isSaved ? (
+              <Bookmark className="h-6 w-6 fill-[#5851DB] text-[#5851DB]" />
+            ) : (
+              <Bookmark className="h-6 w-6" />
+            )}
           </button>
         </div>
         
@@ -171,7 +290,7 @@ export function FeedPost({ post }: FeedPostProps) {
         </form>
         
         <p className="text-gray-400 text-xs mt-2">
-          {formatTimeAgo(post.createdAt)}
+          {formatTimeAgo(post.createdAt || new Date())}
         </p>
       </div>
     </div>
