@@ -5,7 +5,8 @@ import { storage } from "./storage";
 import { setupWebSocketServer } from "./services/webSocketService";
 import { authenticateUser, requireAuth } from "./middlewares/auth";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import { pool } from "./db";
+import pgSession from "connect-pg-simple";
 
 // Controllers
 import * as authController from "./controllers/authController";
@@ -15,7 +16,7 @@ import * as chatController from "./controllers/chatController";
 import * as aiController from "./controllers/aiController";
 import * as notificationController from "./controllers/notificationController";
 
-const SessionStore = MemoryStore(session);
+const PgStore = pgSession(session);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
@@ -34,8 +35,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       secure: process.env.NODE_ENV === 'production',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     },
-    store: new SessionStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
+    store: new PgStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true
     })
   });
   
