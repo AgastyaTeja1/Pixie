@@ -73,8 +73,22 @@ export interface IStorage {
   getMessagesBetweenUsers(user1Id: number, user2Id: number): Promise<Message[]>;
   markMessagesAsRead(senderId: number, receiverId: number): Promise<void>;
   
+  // Saved Posts methods
+  savePost(userId: number, postId: number): Promise<SavedPost>;
+  unsavePost(userId: number, postId: number): Promise<void>;
+  getSavedPosts(userId: number): Promise<PostWithDetails[]>;
+  isPostSavedByUser(userId: number, postId: number): Promise<boolean>;
+  
+  // Notification methods
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getNotifications(userId: number): Promise<Notification[]>;
+  markNotificationAsRead(notificationId: number): Promise<void>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+  
   // AI Image methods
   createAiImage(aiImage: InsertAiImage): Promise<AiImage>;
+  getAiImagesByUser(userId: number): Promise<AiImage[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -85,6 +99,8 @@ export class MemStorage implements IStorage {
   private connections: Map<string, Connection>; // followerId_followingId as key
   private messages: Map<number, Message>;
   private aiImages: Map<number, AiImage>;
+  private savedPosts: Map<string, SavedPost>; // userId_postId as key
+  private notifications: Map<number, Notification>;
   
   private userId: number;
   private postId: number;
@@ -92,6 +108,8 @@ export class MemStorage implements IStorage {
   private connectionId: number;
   private messageId: number;
   private aiImageId: number;
+  private savedPostId: number;
+  private notificationId: number;
   
   currentId: number;
 
@@ -103,6 +121,8 @@ export class MemStorage implements IStorage {
     this.connections = new Map();
     this.messages = new Map();
     this.aiImages = new Map();
+    this.savedPosts = new Map();
+    this.notifications = new Map();
     
     this.userId = 1;
     this.postId = 1;
@@ -110,6 +130,8 @@ export class MemStorage implements IStorage {
     this.connectionId = 1;
     this.messageId = 1;
     this.aiImageId = 1;
+    this.savedPostId = 1;
+    this.notificationId = 1;
     
     this.currentId = 1;
   }
@@ -495,6 +517,96 @@ export class MemStorage implements IStorage {
     const newAiImage: AiImage = { ...aiImage, id, createdAt: new Date() };
     this.aiImages.set(id, newAiImage);
     return newAiImage;
+  }
+  
+  async getAiImagesByUser(userId: number): Promise<AiImage[]> {
+    return Array.from(this.aiImages.values())
+      .filter(image => image.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  
+  // Saved Posts methods
+  async savePost(userId: number, postId: number): Promise<SavedPost> {
+    const key = `${userId}_${postId}`;
+    const savedPost: SavedPost = {
+      id: this.savedPostId++,
+      userId,
+      postId,
+      createdAt: new Date()
+    };
+    this.savedPosts.set(key, savedPost);
+    return savedPost;
+  }
+  
+  async unsavePost(userId: number, postId: number): Promise<void> {
+    const key = `${userId}_${postId}`;
+    this.savedPosts.delete(key);
+  }
+  
+  async getSavedPosts(userId: number): Promise<PostWithDetails[]> {
+    const savedPostsKeys = Array.from(this.savedPosts.entries())
+      .filter(([_, savedPost]) => savedPost.userId === userId)
+      .map(([_, savedPost]) => savedPost.postId);
+    
+    const posts: PostWithDetails[] = [];
+    for (const postId of savedPostsKeys) {
+      const postDetails = await this.getPostWithUserDetails(postId);
+      if (postDetails) {
+        posts.push(postDetails);
+      }
+    }
+    
+    return posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  
+  async isPostSavedByUser(userId: number, postId: number): Promise<boolean> {
+    const key = `${userId}_${postId}`;
+    return this.savedPosts.has(key);
+  }
+  
+  // Notification methods
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const id = this.notificationId++;
+    const newNotification: Notification = { 
+      ...notification, 
+      id, 
+      createdAt: new Date(),
+      isRead: false 
+    };
+    this.notifications.set(id, newNotification);
+    return newNotification;
+  }
+  
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  
+  async markNotificationAsRead(notificationId: number): Promise<void> {
+    const notification = this.notifications.get(notificationId);
+    if (notification) {
+      this.notifications.set(notificationId, { ...notification, isRead: true });
+    }
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    const userNotificationIds = Array.from(this.notifications.entries())
+      .filter(([_, notification]) => notification.userId === userId)
+      .map(([id, _]) => id);
+    
+    for (const id of userNotificationIds) {
+      const notification = this.notifications.get(id);
+      if (notification) {
+        this.notifications.set(id, { ...notification, isRead: true });
+      }
+    }
+  }
+  
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    return Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId && !notification.isRead)
+      .length;
   }
 }
 

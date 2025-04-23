@@ -15,18 +15,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Define user relations
-export const usersRelations = relations(users, ({ many }) => ({
-  posts: many(posts),
-  comments: many(comments),
-  likes: many(likes),
-  followedBy: many(connections, { relationName: "follower" }),
-  following: many(connections, { relationName: "following" }),
-  sentMessages: many(messages, { relationName: "sender" }),
-  receivedMessages: many(messages, { relationName: "receiver" }),
-  aiImages: many(aiImages),
-}));
-
 // Posts table
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -155,7 +143,64 @@ export const aiImagesRelations = relations(aiImages, ({ one }) => ({
   }),
 }));
 
-// Schemas for validation and types
+// Saved Posts table (for post bookmarks)
+export const savedPosts = pgTable("saved_posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  postId: integer("post_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Define saved posts relations
+export const savedPostsRelations = relations(savedPosts, ({ one }) => ({
+  user: one(users, {
+    fields: [savedPosts.userId],
+    references: [users.id],
+  }),
+  post: one(posts, {
+    fields: [savedPosts.postId],
+    references: [posts.id],
+  }),
+}));
+
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // User who receives the notification
+  fromUserId: integer("from_user_id").notNull(), // User who caused the notification
+  type: text("type").notNull(), // like, comment, follow, etc.
+  entityId: integer("entity_id"), // ID of post, comment, etc.
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Define notification relations
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  fromUser: one(users, {
+    fields: [notifications.fromUserId],
+    references: [users.id],
+  }),
+}));
+
+// Define user relations
+export const usersRelations = relations(users, ({ many }) => ({
+  posts: many(posts),
+  comments: many(comments),
+  likes: many(likes),
+  savedPosts: many(savedPosts),
+  followedBy: many(connections, { relationName: "follower" }),
+  following: many(connections, { relationName: "following" }),
+  sentMessages: many(messages, { relationName: "sender" }),
+  receivedMessages: many(messages, { relationName: "receiver" }),
+  aiImages: many(aiImages),
+  notifications: many(notifications),
+}));
+
+// Create insert schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true });
 export const insertCommentSchema = createInsertSchema(comments).omit({ id: true, createdAt: true });
@@ -163,6 +208,8 @@ export const insertLikeSchema = createInsertSchema(likes).omit({ id: true, creat
 export const insertConnectionSchema = createInsertSchema(connections).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true, isRead: true });
 export const insertAiImageSchema = createInsertSchema(aiImages).omit({ id: true, createdAt: true });
+export const insertSavedPostSchema = createInsertSchema(savedPosts).omit({ id: true, createdAt: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, isRead: true });
 
 // Login schema
 export const loginSchema = z.object({
@@ -192,5 +239,9 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type AiImage = typeof aiImages.$inferSelect;
 export type InsertAiImage = z.infer<typeof insertAiImageSchema>;
+export type SavedPost = typeof savedPosts.$inferSelect;
+export type InsertSavedPost = z.infer<typeof insertSavedPostSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Login = z.infer<typeof loginSchema>;
 export type ProfileSetup = z.infer<typeof profileSetupSchema>;
