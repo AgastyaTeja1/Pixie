@@ -156,8 +156,7 @@ export const likePost = async (req: Request, res: Response) => {
         type: 'like',
         userId: post.userId,
         fromUserId: currentUserId,
-        entityId: parseInt(id),
-        isRead: false
+        entityId: parseInt(id)
       });
     }
     
@@ -229,8 +228,7 @@ export const addComment = async (req: Request, res: Response) => {
         type: 'comment',
         userId: post.userId,
         fromUserId: currentUserId,
-        entityId: post.id,
-        isRead: false
+        entityId: post.id
       });
     }
     
