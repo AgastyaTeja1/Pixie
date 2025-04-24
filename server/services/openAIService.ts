@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { downloadAndSaveImage } from "./imageService";
 
 // Verify the OpenAI API key is properly set
 console.log('OpenAI API key status:', process.env.OPENAI_API_KEY ? 'API key is set' : 'API key is not set');
@@ -35,7 +36,11 @@ export async function generateImage(prompt: string): Promise<string> {
     
     if (response.data && response.data.length > 0 && response.data[0].url) {
       console.log('Successfully generated image URL');
-      return response.data[0].url;
+      
+      // Download and save the image locally to prevent URL expiration issues
+      const permanentUrl = await downloadAndSaveImage(response.data[0].url);
+      console.log('Saved image permanently to:', permanentUrl);
+      return permanentUrl;
     }
     
     console.error('Invalid response structure from OpenAI API');
@@ -78,7 +83,11 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
     
     if (response.data && response.data.length > 0 && response.data[0].url) {
       console.log('Successfully generated edited image URL');
-      return response.data[0].url;
+      
+      // Download and save the image locally to prevent URL expiration issues
+      const permanentUrl = await downloadAndSaveImage(response.data[0].url);
+      console.log('Saved edited image permanently to:', permanentUrl);
+      return permanentUrl;
     }
     
     console.error('Invalid response structure from OpenAI API for edit');
@@ -120,7 +129,11 @@ export async function applyStyle(imageBase64: string, style: string): Promise<st
     
     if (response.data && response.data.length > 0 && response.data[0].url) {
       console.log('Successfully generated styled image URL');
-      return response.data[0].url;
+      
+      // Download and save the image locally to prevent URL expiration issues
+      const permanentUrl = await downloadAndSaveImage(response.data[0].url);
+      console.log('Saved styled image permanently to:', permanentUrl);
+      return permanentUrl;
     }
     
     console.error('Invalid response structure from OpenAI API for style');
