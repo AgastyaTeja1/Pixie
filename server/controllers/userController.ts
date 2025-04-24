@@ -212,6 +212,46 @@ export const cancelConnectionRequest = async (req: Request, res: Response) => {
   }
 };
 
+// Reject connection request from another user
+export const rejectConnectionRequest = async (req: Request, res: Response) => {
+  try {
+    const currentUserId = req.session.userId!;
+    const { userId } = req.params;
+    const followerId = parseInt(userId);
+    
+    console.log(`Rejecting connection request from user ${followerId} to user ${currentUserId}`);
+    
+    // Check if request exists
+    const connectionRequest = await storage.getConnection(followerId, currentUserId);
+    if (!connectionRequest) {
+      return res.status(404).json({ message: 'Connection request not found' });
+    }
+    
+    if (connectionRequest.status !== 'pending') {
+      return res.status(400).json({ message: 'Connection request already processed' });
+    }
+    
+    // Mark as rejected first (helps with audit trails if needed)
+    await storage.updateConnectionStatus(followerId, currentUserId, 'rejected');
+    
+    // Then delete the connection
+    await storage.deleteConnection(followerId, currentUserId);
+    
+    // Create notification for the user whose request was rejected
+    await storage.createNotification({
+      type: 'connection_rejected',
+      userId: followerId,
+      fromUserId: currentUserId
+    });
+    
+    return res.status(200).json({ message: 'Connection request rejected' });
+    
+  } catch (error) {
+    console.error('Reject connection error:', error);
+    return res.status(500).json({ message: 'Failed to reject connection request' });
+  }
+};
+
 // Remove connection
 export const removeConnection = async (req: Request, res: Response) => {
   try {
