@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from 'ws';
+import path from "path";
 import { storage } from "./storage";
 import { setupWebSocketServer } from "./services/webSocketService";
 import { authenticateUser, requireAuth } from "./middlewares/auth";
@@ -43,6 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.use(sessionMiddleware);
+  
+  // Serve static files from public/uploads directory
+  app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
   
   // Apply authentication middleware for all routes
   app.use(authenticateUser);
