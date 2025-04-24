@@ -159,14 +159,16 @@ export function ProfileHeader({
         });
         
         // Send real-time connection update
-        sendMessage({
-          type: 'connection_status',
-          payload: {
-            fromUserId: user.id,
-            toUserId: profileUser.id,
-            status: 'pending'
-          }
-        });
+        if (user) {
+          sendMessage({
+            type: 'connection_status',
+            payload: {
+              fromUserId: user.id,
+              toUserId: profileUser.id,
+              status: 'pending'
+            }
+          });
+        }
         
         toast({
           title: 'Request sent',

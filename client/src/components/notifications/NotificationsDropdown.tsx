@@ -21,6 +21,8 @@ export function NotificationsDropdown() {
   const [, navigate] = useLocation();
   const [hasUnread, setHasUnread] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { newNotifications, sendMessage } = useContext(WebSocketContext);
   
   // Fetch notifications
   const { data: notifications, isLoading, error } = useQuery<NotificationWithUser[]>({
@@ -47,6 +49,17 @@ export function NotificationsDropdown() {
     }
   }, [notifications]);
   
+  // Listen for new notifications via WebSocket
+  useEffect(() => {
+    if (newNotifications && Object.keys(newNotifications).length > 0) {
+      // If we have new notifications, invalidate the notifications query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      
+      // Set the unread flag to true as we just received a new notification
+      setHasUnread(true);
+    }
+  }, [newNotifications, queryClient]);
+  
   // Handle accept connection request
   const handleAcceptConnection = async (notification: NotificationWithUser, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent dropdown item click event
@@ -65,6 +78,18 @@ export function NotificationsDropdown() {
       console.log('Accepting connection from user ID:', notification.fromUserId);
       const acceptResponse = await apiRequest('POST', `/api/connections/accept/${notification.fromUserId}`);
       console.log('Accept connection response:', await acceptResponse.text());
+      
+      // Send real-time websocket notification
+      if (user) {
+        sendMessage({
+          type: 'connection_status',
+          payload: {
+            fromUserId: user.id,
+            toUserId: notification.fromUserId,
+            status: 'accepted'
+          }
+        });
+      }
       
       // Refresh notifications and connection status
       console.log('Refreshing notifications and connection status...');

@@ -11,6 +11,7 @@ interface WebSocketContextType {
   onlineUsers: number[];
   connectionUpdates: Record<string, string>; // Map of userId to connection status
   recentNotifications: WebSocketMessage[];
+  newNotifications: Record<string, WebSocketMessage>; // Map of notification IDs to notification data
   likeUpdates: {postId: number, count: number}[];
   commentUpdates: {postId: number, count: number}[];
 }
@@ -22,6 +23,7 @@ export const WebSocketContext = createContext<WebSocketContextType>({
   onlineUsers: [],
   connectionUpdates: {},
   recentNotifications: [],
+  newNotifications: {},
   likeUpdates: [],
   commentUpdates: [],
 });
@@ -37,6 +39,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
   const [connectionUpdates, setConnectionUpdates] = useState<Record<string, string>>({});
   const [recentNotifications, setRecentNotifications] = useState<WebSocketMessage[]>([]);
+  const [newNotifications, setNewNotifications] = useState<Record<string, WebSocketMessage>>({});
   const [likeUpdates, setLikeUpdates] = useState<{postId: number, count: number}[]>([]);
   const [commentUpdates, setCommentUpdates] = useState<{postId: number, count: number}[]>([]);
   
@@ -187,6 +190,21 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
               return newList;
             });
             
+            // Add to newNotifications state with a unique key
+            if (data.payload.id) {
+              setNewNotifications(prev => ({
+                ...prev,
+                [data.payload.id]: data
+              }));
+            } else {
+              // Use timestamp if id is not available
+              const timestamp = new Date().getTime();
+              setNewNotifications(prev => ({
+                ...prev,
+                [`temp_${timestamp}`]: data
+              }));
+            }
+            
             // Show notification toast based on type
             if (data.payload.type) {
               handleNotificationToast(data);
@@ -327,6 +345,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         onlineUsers,
         connectionUpdates,
         recentNotifications,
+        newNotifications,
         likeUpdates,
         commentUpdates
       }}
