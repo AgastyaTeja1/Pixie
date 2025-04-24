@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -36,7 +36,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function CreatePost() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -50,6 +50,25 @@ export function CreatePost() {
       altText: '',
     },
   });
+  
+  // Check if an image URL is provided in the query parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const imageUrl = searchParams.get('imageUrl');
+    
+    if (imageUrl) {
+      // Set the image from the URL parameter
+      setUploadedImage(imageUrl);
+      
+      // Optional: Set a default caption that mentions AI generation
+      if (imageUrl.includes('openai') || imageUrl.includes('dall-e')) {
+        form.setValue('caption', 'Created with Pixie AI ✨');
+      }
+      
+      // Clear the URL parameter without refreshing the page
+      navigate('/post', { replace: true });
+    }
+  }, [location, form, navigate]);
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

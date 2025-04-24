@@ -88,6 +88,9 @@ export function ImageEditor() {
       return;
     }
     
+    // Store the original uploaded image for reference (helps with "before/after" comparison)
+    localStorage.setItem('lastUploadedImage', uploadedImage);
+    
     setIsLoading(true);
     try {
       const response = await apiRequest('POST', '/api/ai/edit', {
@@ -255,7 +258,7 @@ export function ImageEditor() {
               onClick={() => {
                 // Create a post with this image
                 const a = document.createElement('a');
-                a.href = '/post';
+                a.href = `/post?imageUrl=${encodeURIComponent(generatedImage || '')}`;
                 a.click();
               }}
               className="flex-1 pixie-gradient text-white hover:shadow-lg"
