@@ -45,7 +45,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.use(sessionMiddleware);
   
-  // Serve static files from public/uploads directory
+  // Serve static files from public directory
+  app.use(express.static(path.join(process.cwd(), 'public')));
+  
+  // Specifically serve uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
   
   // Apply authentication middleware for all routes
