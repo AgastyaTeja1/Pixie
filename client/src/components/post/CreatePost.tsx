@@ -115,6 +115,17 @@ export function CreatePost() {
     }
   };
 
+  const validateImage = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+      // Add a timeout to prevent hanging indefinitely on certain URLs
+      setTimeout(() => resolve(false), 5000);
+    });
+  };
+
   const onSubmit = async (values: FormValues) => {
     if (!uploadedImage) {
       toast({
@@ -126,7 +137,23 @@ export function CreatePost() {
     }
     
     setIsLoading(true);
+    
+    // Validate that the image URL is still valid before submission
+    const isImageValid = await validateImage(uploadedImage);
+    if (!isImageValid) {
+      setIsLoading(false);
+      toast({
+        title: 'Image error',
+        description: 'The selected image appears to be invalid or inaccessible. Please try uploading again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     try {
+      // Add a log statement to track image URL before sending
+      console.log('Submitting post with image URL:', uploadedImage.substring(0, 100) + '...');
+      
       await apiRequest('POST', '/api/posts', {
         ...values,
         mediaUrl: uploadedImage,
@@ -141,6 +168,7 @@ export function CreatePost() {
       queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
       navigate('/feed');
     } catch (error) {
+      console.error('Error creating post:', error);
       toast({
         title: 'Error',
         description: 'Failed to create post',
@@ -163,6 +191,38 @@ export function CreatePost() {
                 src={uploadedImage} 
                 alt="Preview" 
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  console.error(`Failed to load preview image: ${uploadedImage}`);
+                  e.currentTarget.onerror = null; // Prevent infinite error loop
+                  
+                  // Show a user-friendly error message
+                  toast({
+                    title: 'Image loading error',
+                    description: 'The image could not be loaded. Try uploading a different image.',
+                    variant: 'destructive',
+                  });
+                  
+                  // Replace with an error UI
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmMDAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIj48L2NpcmNsZT48bGluZSB4MT0iMTIiIHkxPSI4IiB4Mj0iMTIiIHkyPSIxMiI+PC9saW5lPjxsaW5lIHgxPSIxMiIgeTE9IjE2IiB4Mj0iMTIuMDEiIHkyPSIxNiI+PC9saW5lPjwvc3ZnPg==';
+                  e.currentTarget.className = 'w-full h-full object-contain opacity-50';
+                  
+                  // Add an overlay error message
+                  const container = e.currentTarget.parentElement;
+                  if (container) {
+                    const errorOverlay = document.createElement('div');
+                    errorOverlay.className = 'absolute inset-0 flex flex-col items-center justify-center bg-white/80';
+                    errorOverlay.innerHTML = `
+                      <div class="text-center p-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-red-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="text-lg font-medium text-gray-900">Image Error</h3>
+                        <p class="text-sm text-gray-600 mt-1">Failed to load image. Please try again or upload a different image.</p>
+                      </div>
+                    `;
+                    container.appendChild(errorOverlay);
+                  }
+                }}
               />
               <button
                 onClick={() => setUploadedImage(null)}
