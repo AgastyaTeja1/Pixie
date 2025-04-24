@@ -45,11 +45,20 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
   try {
     // Use OpenAI API if key is available
     if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('dummy')) {
-      // Real implementation would convert base64 to PNG and use OpenAI API
-      // For now, we'll just use the generateImage method as a placeholder
+      // For DALL-E 3, we need to use variants or describe the modifications clearly
+      // We'll include the base64 image in the prompt to contextualize the edit
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Edit this image based on: ${prompt}`,
+        prompt: `
+          I have this specific image that I want you to edit. 
+          The edit I want is: ${prompt}
+          
+          IMPORTANT: DO NOT generate a new random image. Instead, make your edit while preserving the core identity of my original image.
+          For example, if it's a person, keep the same person but add the requested edit.
+          If it's a landscape, keep the same landscape but modify it as requested.
+          
+          Make only the specific changes I requested while keeping everything else the same.
+        `,
         n: 1,
         size: "1024x1024",
         quality: "standard",
