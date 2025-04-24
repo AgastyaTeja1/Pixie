@@ -134,9 +134,18 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
         </Avatar>
         <div>
           <p className="font-medium">{selectedChat.fullName || selectedChat.username}</p>
-          <p className="text-xs text-gray-500">
-            {onlineUsers.includes(selectedChat.userId) ? 'Active now' : 'Offline'}
-          </p>
+          <div className="flex items-center">
+            <span
+              className={`inline-block w-2 h-2 rounded-full mr-1 ${
+                onlineUsers.includes(selectedChat.userId) 
+                  ? 'bg-green-500 animate-pulse' 
+                  : 'bg-gray-300'
+              }`}
+            />
+            <p className="text-xs text-gray-500">
+              {onlineUsers.includes(selectedChat.userId) ? 'Active now' : 'Offline'}
+            </p>
+          </div>
         </div>
         <div className="ml-auto flex space-x-3">
           <Button 
