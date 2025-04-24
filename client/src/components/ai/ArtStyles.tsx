@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, Download, Share2, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { fileToBase64 } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ArtStyle {
   id: string;
@@ -56,9 +57,12 @@ const ART_STYLES: ArtStyle[] = [
 
 export function ArtStyles() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImageId, setGeneratedImageId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [showAllStyles, setShowAllStyles] = useState(false);
@@ -111,6 +115,7 @@ export function ArtStyles() {
       
       const data = await response.json();
       setGeneratedImage(data.imageUrl);
+      setGeneratedImageId(data.id);
       
       toast({
         title: 'Style applied',
@@ -124,6 +129,84 @@ export function ArtStyles() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const saveToCollection = async () => {
+    if (!generatedImage || !user) return;
+    setIsSaving(true);
+    try {
+      // Save the image to user's collection
+      if (generatedImageId) {
+        // If we already have an ID, we can just update the saved status
+        await apiRequest('POST', `/api/ai/images/${generatedImageId}/save`, {
+          userId: user.id
+        });
+      } else {
+        // Otherwise create a new saved image entry
+        await apiRequest('POST', '/api/ai/images/save', {
+          imageUrl: generatedImage,
+          userId: user.id,
+          style: selectedStyle || 'custom style'
+        });
+      }
+      
+      toast({
+        title: 'Image saved',
+        description: 'Image has been saved to your collection',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to save image to collection',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const downloadImage = () => {
+    if (!generatedImage) return;
+    
+    // Create anchor element to download image
+    const a = document.createElement('a');
+    a.href = generatedImage;
+    a.download = `pixie-ai-styled-${selectedStyle}-${Date.now()}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    toast({
+      title: 'Image downloaded',
+      description: 'Image has been downloaded to your device',
+    });
+  };
+
+  const shareImage = () => {
+    if (!generatedImage) return;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Pixie AI Styled Image',
+        text: `Check out this image with ${selectedStyle} style from Pixie!`,
+        url: generatedImage,
+      })
+      .catch(() => {
+        // If share fails, copy to clipboard instead
+        navigator.clipboard.writeText(generatedImage);
+        toast({
+          title: 'Link copied',
+          description: 'Image link copied to clipboard',
+        });
+      });
+    } else {
+      // Fallback for browsers that don't support sharing
+      navigator.clipboard.writeText(generatedImage);
+      toast({
+        title: 'Link copied',
+        description: 'Image link copied to clipboard',
+      });
     }
   };
 
@@ -142,12 +225,41 @@ export function ArtStyles() {
       
       {generatedImage ? (
         <div className="space-y-4">
-          <div className="rounded-lg overflow-hidden bg-white shadow-md">
+          <div className="rounded-lg overflow-hidden bg-white shadow-md relative">
             <img 
               src={generatedImage} 
               alt="Styled Image" 
               className="w-full h-auto"
             />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+              <div className="flex justify-between items-center">
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={saveToCollection}
+                    disabled={isSaving}
+                    className="text-white hover:text-[#5851DB] transition"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Bookmark className="h-5 w-5" />
+                    )}
+                  </button>
+                  <button 
+                    onClick={downloadImage}
+                    className="text-white hover:text-[#5851DB] transition"
+                  >
+                    <Download className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={shareImage}
+                    className="text-white hover:text-[#5851DB] transition"
+                  >
+                    <Share2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="flex space-x-3">
@@ -162,7 +274,7 @@ export function ArtStyles() {
               onClick={() => {
                 // Create a post with this image
                 const a = document.createElement('a');
-                a.href = '/post';
+                a.href = `/post?imageUrl=${encodeURIComponent(generatedImage)}`;
                 a.click();
               }}
               className="flex-1 pixie-gradient text-white hover:shadow-lg"
