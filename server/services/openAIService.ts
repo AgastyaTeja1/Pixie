@@ -1,6 +1,45 @@
 import OpenAI from "openai";
 import { downloadAndSaveImage } from "./imageService";
 
+// Function to get a description of an image using GPT-4o
+async function getImageDescription(imageBase64: string): Promise<string> {
+  try {
+    // Ensure the image data is properly formatted for the API
+    const base64Image = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
+    
+    // Use GPT-4o to analyze the image
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Describe this image in detail, focusing on the main subjects, colors, composition, and notable elements. Be thorough but concise."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: dataUrl
+              }
+            }
+          ],
+        },
+      ],
+      max_tokens: 300,
+    });
+
+    // Return the description
+    return response.choices[0].message.content || "An image that could not be analyzed";
+  } catch (error: any) {
+    console.error("Error analyzing image:", error);
+    // Return a generic description if there's an error
+    return "An image provided by the user";
+  }
+}
+
 // Verify the OpenAI API key is properly set
 console.log('OpenAI API key status:', process.env.OPENAI_API_KEY ? 'API key is set' : 'API key is not set');
 
@@ -63,9 +102,20 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
     // Log the length of the API key for debugging (without revealing the key)
     console.log('API key length:', process.env.OPENAI_API_KEY?.length || 'No API key');
     
-    // For image editing, we'll use a descriptive prompt that incorporates the editing request
-    // Since DALL-E 3 doesn't support direct image editing, we create a new image based on the prompt
-    const enhancedPrompt = `Create an image based on this description: ${prompt}. Make it visually appealing with professional quality.`;
+    // For image editing, we need to analyze the uploaded image and incorporate it into the prompt
+    // Since DALL-E 3 supports vision capabilities, we'll use it to understand the image first
+    console.log('Analyzing uploaded image for editing...');
+    
+    // First, get a description of the uploaded image using GPT-4o's vision capabilities
+    const imageDescription = await getImageDescription(imageBase64);
+    console.log('Image description obtained:', imageDescription);
+    
+    // Now create an enhanced prompt that combines the image description with the user's editing instructions
+    const enhancedPrompt = `I have an image that shows: ${imageDescription}. 
+Now, I want you to edit this image according to these instructions: ${prompt}. 
+Please maintain the key elements and subjects from the original image, but apply the requested changes.
+Make it visually appealing with professional quality.`;
+    
     console.log('Enhanced prompt length for edit:', enhancedPrompt.length);
     
     // Make the API request
@@ -110,8 +160,17 @@ export async function applyStyle(imageBase64: string, style: string): Promise<st
     // Log the length of the API key for debugging (without revealing the key)
     console.log('API key length:', process.env.OPENAI_API_KEY?.length || 'No API key');
     
-    // Create a prompt for the requested style
-    const enhancedPrompt = `Create a beautiful artistic image in ${style} style. Make it visually striking with vibrant colors and rich details.`;
+    // First, analyze the uploaded image to understand its content
+    console.log('Analyzing uploaded image for style application...');
+    const imageDescription = await getImageDescription(imageBase64);
+    console.log('Image description obtained:', imageDescription);
+    
+    // Create a prompt that combines the image description with the requested style
+    const enhancedPrompt = `I have an image that shows: ${imageDescription}.
+Please recreate this image in the ${style} artistic style. 
+Maintain the key subjects and composition from the original image, but transform the visual appearance to match the ${style} style.
+Make it visually striking with colors and details typical of ${style} artwork.`;
+    
     console.log('Style prompt length:', enhancedPrompt.length);
     
     // Make the API request
