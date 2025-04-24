@@ -32,14 +32,32 @@ export function FeedPost({ post }: FeedPostProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { sendMessage, likeUpdates, commentUpdates } = useContext(WebSocketContext);
   const [location, navigate] = useLocation();
   const [comment, setComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
   const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [commentCount, setCommentCount] = useState(post.commentCount);
   const [isSendingComment, setIsSendingComment] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const commentInputRef = useRef<HTMLInputElement>(null);
+  
+  // Listen for real-time like updates
+  useEffect(() => {
+    const likeUpdate = likeUpdates.find(update => update.postId === post.id);
+    if (likeUpdate) {
+      setLikeCount(likeUpdate.count);
+    }
+  }, [likeUpdates, post.id]);
+  
+  // Listen for real-time comment updates
+  useEffect(() => {
+    const commentUpdate = commentUpdates.find(update => update.postId === post.id);
+    if (commentUpdate) {
+      setCommentCount(commentUpdate.count);
+    }
+  }, [commentUpdates, post.id]);
 
   const handleLike = async () => {
     try {
@@ -51,6 +69,17 @@ export function FeedPost({ post }: FeedPostProps) {
         await apiRequest('POST', `/api/posts/${post.id}/like`);
         setIsLiked(true);
         setLikeCount(prev => prev + 1);
+      }
+      
+      // Send real-time update via WebSocket
+      if (user) {
+        sendMessage({
+          type: 'like_update',
+          payload: {
+            postId: post.id,
+            userId: user.id
+          }
+        });
       }
     } catch (error) {
       toast({
@@ -116,38 +145,20 @@ export function FeedPost({ post }: FeedPostProps) {
 
   const handleShareWithConnection = async (connectionId: number, connectionUsername: string) => {
     try {
-      // Get WebSocket connection
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      // Use the WebSocket context instead of creating a new connection
+      sendMessage({
+        type: 'share_post',
+        payload: {
+          fromUserId: user?.id,
+          toUserId: connectionId,
+          postId: post.id
+        }
+      });
       
-      socket.onopen = () => {
-        // Send share message
-        socket.send(JSON.stringify({
-          type: 'share_post',
-          payload: {
-            fromUserId: user?.id,
-            toUserId: connectionId,
-            postId: post.id
-          }
-        }));
-        
-        // Close socket after sending
-        socket.close();
-        
-        toast({
-          title: 'Post shared',
-          description: `Post shared with ${connectionUsername}`,
-        });
-      };
-      
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to share post',
-          variant: 'destructive',
-        });
-      };
+      toast({
+        title: 'Post shared',
+        description: `Post shared with ${connectionUsername}`,
+      });
     } catch (error) {
       console.error('Share error:', error);
       toast({
@@ -211,10 +222,26 @@ export function FeedPost({ post }: FeedPostProps) {
 
     setIsSendingComment(true);
     try {
-      await apiRequest('POST', `/api/posts/${post.id}/comment`, { comment });
+      const response = await apiRequest('POST', `/api/posts/${post.id}/comment`, { comment });
       setComment('');
       // Invalidate post data to refresh comments
       queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+      
+      // Update comment count locally
+      setCommentCount(prev => prev + 1);
+      
+      // Send real-time update via WebSocket
+      if (user) {
+        sendMessage({
+          type: 'comment_update',
+          payload: {
+            postId: post.id,
+            userId: user.id,
+            commentId: response && typeof response === 'object' ? response.id : undefined
+          }
+        });
+      }
+      
       toast({
         title: 'Comment added',
         description: 'Your comment has been added successfully',
@@ -393,7 +420,10 @@ export function FeedPost({ post }: FeedPostProps) {
           </button>
         </div>
         
-        <p className="font-medium mb-1">{likeCount} likes</p>
+        <div className="flex space-x-4 mb-1">
+          <p className="font-medium">{likeCount} likes</p>
+          <p className="font-medium">{commentCount} comments</p>
+        </div>
         
         {post.caption && (
           <p>
@@ -417,12 +447,12 @@ export function FeedPost({ post }: FeedPostProps) {
           </div>
         )}
         
-        {post.commentCount > (post.comments?.length || 0) && (
+        {commentCount > (post.comments?.length || 0) && (
           <p 
             className="text-gray-500 text-sm mt-1 cursor-pointer hover:text-gray-700"
             onClick={() => navigate(`/post/${post.id}`)}
           >
-            View all {post.commentCount} comments
+            View all {commentCount} comments
           </p>
         )}
         
