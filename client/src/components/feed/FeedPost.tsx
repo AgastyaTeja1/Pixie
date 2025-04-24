@@ -1,12 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatTimeAgo, getInitials } from '@/lib/utils';
-import { PostWithDetails } from '@shared/types';
+import { PostWithDetails, User } from '@shared/types';
 import { useAuth } from '@/hooks/use-auth';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Trash2, User as UserIcon, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,12 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useQuery } from '@tanstack/react-query';
 
 interface FeedPostProps {
   post: PostWithDetails;
@@ -86,28 +92,86 @@ export function FeedPost({ post }: FeedPostProps) {
     }
   };
 
+  // Fetch connections to share with
+  const { data: connections, isLoading: isLoadingConnections } = useQuery({
+    queryKey: ['/api/connections'],
+    queryFn: async () => {
+      const response = await fetch('/api/connections');
+      if (!response.ok) throw new Error('Failed to fetch connections');
+      return response.json();
+    },
+    enabled: !!user // Only fetch if user is logged in
+  });
+
+  const handleCopyLink = () => {
+    // Copy post link to clipboard
+    const postUrl = `${window.location.origin}/post/${post.id}`;
+    navigator.clipboard.writeText(postUrl);
+    toast({
+      title: 'Link copied',
+      description: 'Post link copied to clipboard',
+    });
+  };
+
+  const handleShareWithConnection = async (connectionId: number, connectionUsername: string) => {
+    try {
+      // Get WebSocket connection
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      
+      socket.onopen = () => {
+        // Send share message
+        socket.send(JSON.stringify({
+          type: 'share_post',
+          payload: {
+            fromUserId: user?.id,
+            toUserId: connectionId,
+            postId: post.id
+          }
+        }));
+        
+        // Close socket after sending
+        socket.close();
+        
+        toast({
+          title: 'Post shared',
+          description: `Post shared with ${connectionUsername}`,
+        });
+      };
+      
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to share post',
+          variant: 'destructive',
+        });
+      };
+    } catch (error) {
+      console.error('Share error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to share post',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleSharePost = () => {
+    // Native share API (mobile devices)
     if (navigator.share) {
       navigator.share({
         title: `${post.user.username}'s post on Pixie`,
         text: post.caption || 'Check out this post on Pixie',
-        url: window.location.href,
+        url: `${window.location.origin}/post/${post.id}`,
       })
       .catch(() => {
         // If share fails, copy to clipboard instead
-        navigator.clipboard.writeText(window.location.href);
-        toast({
-          title: 'Link copied',
-          description: 'Post link copied to clipboard',
-        });
+        handleCopyLink();
       });
     } else {
       // Fallback for browsers that don't support sharing
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: 'Link copied',
-        description: 'Post link copied to clipboard',
-      });
+      handleCopyLink();
     }
   };
 
@@ -245,12 +309,77 @@ export function FeedPost({ post }: FeedPostProps) {
           >
             <MessageCircle className="h-6 w-6" />
           </button>
-          <button 
-            className="text-2xl text-gray-700 hover:text-[#FCAF45]"
-            onClick={handleSharePost}
-          >
-            <Share2 className="h-6 w-6" />
-          </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="text-2xl text-gray-700 hover:text-[#FCAF45]">
+                <Share2 className="h-6 w-6" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" side="top" className="p-0 w-64">
+              <div className="p-3 border-b">
+                <h3 className="font-medium">Share post</h3>
+              </div>
+              
+              <div className="divide-y divide-gray-100">
+                <button 
+                  onClick={handleCopyLink}
+                  className="flex items-center w-full p-3 text-left hover:bg-gray-50"
+                >
+                  <LinkIcon className="h-4 w-4 mr-3 text-gray-500" />
+                  <span>Copy link</span>
+                </button>
+                
+                <button 
+                  onClick={handleSharePost}
+                  className="flex items-center w-full p-3 text-left hover:bg-gray-50"
+                >
+                  <ExternalLink className="h-4 w-4 mr-3 text-gray-500" />
+                  <span>Share externally</span>
+                </button>
+                
+                {user && connections && connections.length > 0 && (
+                  <div className="p-3">
+                    <h4 className="text-sm font-medium mb-2 text-gray-500">Share with</h4>
+                    <div className="max-h-48 overflow-y-auto">
+                      {connections.map((connection: any) => (
+                        <button 
+                          key={connection.user.id}
+                          className="flex items-center w-full px-2 py-2 rounded-md text-left hover:bg-gray-50"
+                          onClick={() => handleShareWithConnection(connection.user.id, connection.user.username)}
+                        >
+                          <Avatar className="h-8 w-8 mr-2">
+                            <AvatarImage src={connection.user.profileImage || ''} />
+                            <AvatarFallback className="bg-gray-200">
+                              {getInitials(connection.user.username)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="truncate">
+                            <p className="font-medium text-sm">{connection.user.username}</p>
+                            {connection.user.fullName && (
+                              <p className="text-xs text-gray-500 truncate">{connection.user.fullName}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {isLoadingConnections && (
+                  <div className="flex justify-center items-center p-4">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#5851DB] border-t-transparent" />
+                  </div>
+                )}
+                
+                {!isLoadingConnections && connections && connections.length === 0 && (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    <UserIcon className="h-5 w-5 mx-auto mb-2 opacity-50" />
+                    <p>You have no connections yet</p>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           <button 
             className={`text-2xl ml-auto ${isSaved ? 'text-[#5851DB]' : 'text-gray-700 hover:text-[#5851DB]'}`}
             onClick={handleSavePost}
