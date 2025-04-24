@@ -30,8 +30,16 @@ export const generateImage = async (req: Request, res: Response) => {
   try {
     const userId = req.session.userId!;
     
-    // Validate input
-    const { prompt } = generateImageSchema.parse(req.body);
+    // Validate input with safeParse for consistency
+    const result = generateImageSchema.safeParse(req.body);
+    
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: fromZodError(result.error).message 
+      });
+    }
+    
+    const { prompt } = result.data;
     
     // Generate image
     const imageUrl = await generateAIImage(prompt);
@@ -51,10 +59,6 @@ export const generateImage = async (req: Request, res: Response) => {
     });
     
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: fromZodError(error).message });
-    }
-    
     console.error('Generate image error:', error);
     return res.status(500).json({ message: 'Failed to generate image' });
   }
@@ -66,9 +70,18 @@ export const editImage = async (req: Request, res: Response) => {
     const userId = req.session.userId!;
     
     // Validate input
-    const { image, prompt } = editImageSchema.parse(req.body);
+    const result = editImageSchema.safeParse(req.body);
     
-    // Edit image
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: fromZodError(result.error).message 
+      });
+    }
+    
+    const { image, prompt } = result.data;
+    
+    // Edit image - we don't actually use the provided image for editing due to API limitations,
+    // but we will save it as a reference
     const editedImageUrl = await editAIImage(image, prompt);
     
     // Save to database
@@ -86,10 +99,6 @@ export const editImage = async (req: Request, res: Response) => {
     });
     
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: fromZodError(error).message });
-    }
-    
     console.error('Edit image error:', error);
     return res.status(500).json({ message: 'Failed to edit image' });
   }
@@ -100,10 +109,19 @@ export const applyStyle = async (req: Request, res: Response) => {
   try {
     const userId = req.session.userId!;
     
-    // Validate input
-    const { image, style } = styleImageSchema.parse(req.body);
+    // Validate input with safeParse
+    const result = styleImageSchema.safeParse(req.body);
     
-    // Apply style
+    if (!result.success) {
+      return res.status(400).json({ 
+        message: fromZodError(result.error).message 
+      });
+    }
+    
+    const { image, style } = result.data;
+    
+    // Apply style - similar to the edit function, we don't actually use the provided image
+    // due to API limitations, but we still save it for reference
     const styledImageUrl = await applyAIStyle(image, style);
     
     // Save to database
@@ -121,10 +139,6 @@ export const applyStyle = async (req: Request, res: Response) => {
     });
     
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: fromZodError(error).message });
-    }
-    
     console.error('Apply style error:', error);
     return res.status(500).json({ message: 'Failed to apply style to image' });
   }
