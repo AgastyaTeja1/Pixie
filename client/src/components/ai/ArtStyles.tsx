@@ -161,45 +161,25 @@ export function ArtStyles() {
     if (!generatedImage || !user) return;
     setIsSaving(true);
     try {
-      let imageUrl;
-      
+      // Save the image to user's collection
       if (generatedImageId) {
-        // If we already have an ID, we can retrieve the image details
-        const response = await apiRequest('POST', `/api/ai/images/${generatedImageId}/save`, {
+        // If we already have an ID, we can just update the saved status
+        await apiRequest('POST', `/api/ai/images/${generatedImageId}/save`, {
           userId: user.id
         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          imageUrl = data.imageUrl;
-        } else {
-          throw new Error('Failed to get image details');
-        }
       } else {
-        // Otherwise create a new AI image entry
-        const response = await apiRequest('POST', '/api/ai/images/save', {
+        // Otherwise create a new saved image entry
+        await apiRequest('POST', '/api/ai/images/save', {
           imageUrl: generatedImage,
           userId: user.id,
           style: selectedStyle || 'custom style'
         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          imageUrl = data.imageUrl;
-        } else {
-          throw new Error('Failed to save image');
-        }
       }
       
-      // Redirect to post creation with the image URL
-      if (imageUrl) {
-        toast({
-          title: 'Image ready',
-          description: 'Add a caption to create your post',
-        });
-        // Redirect to post creation
-        window.location.href = `/post?imageUrl=${encodeURIComponent(imageUrl)}`;
-      }
+      toast({
+        title: 'Image saved',
+        description: 'Image has been saved to your collection',
+      });
     } catch (error) {
       toast({
         title: 'Error',
