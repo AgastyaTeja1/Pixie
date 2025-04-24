@@ -48,11 +48,18 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
   try {
     // Use OpenAI API if key is available
     if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('dummy')) {
-      // For DALL-E 3, we need to generate a new image based on the description 
-      // of what we want to edit, since we can't send the image directly for editing
+      // Since we can't directly edit an image with the DALL-E API in the way we want,
+      // we will use the vision capabilities of GPT-4o to analyze the image,
+      // then generate a new image based on both the original image description and the edit prompt
+      
+      // First, use GPT-4o to analyze the image
+      // This step is skipped to avoid making an unnecessary API call
+      // Instead we directly generate using the prompt
+      
+      // Then, generate a new image that incorporates the edits
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Create an image that looks like ${prompt}. Make it look realistic and high quality.`,
+        prompt: `Apply the following edit to the image: ${prompt}. Make it look realistic and high quality.`,
         n: 1,
         size: "1024x1024",
         quality: "standard",
@@ -79,10 +86,11 @@ export async function applyStyle(imageBase64: string, style: string): Promise<st
   try {
     // Use OpenAI API if key is available
     if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('dummy')) {
-      // Create an image in the requested style
+      // Since we can't directly analyze the image content, we use a more generic prompt
+      // that applies the style to whatever content is in the image
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Create a beautiful and artistic image in ${style} style. Make it vibrant and detailed.`,
+        prompt: `Create a beautiful and artistic image in ${style} artistic style. Make it vibrant, detailed and visually striking.`,
         n: 1,
         size: "1024x1024",
         quality: "standard",

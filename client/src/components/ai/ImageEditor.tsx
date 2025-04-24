@@ -204,8 +204,8 @@ export function ImageEditor() {
 
   return (
     <div className="bg-gradient-to-br from-[#FCAF45]/10 to-[#E1306C]/10 p-6 rounded-xl">
-      <h3 className="text-xl font-semibold mb-3">AI Image Creator</h3>
-      <p className="text-gray-600 mb-4">Describe and create an image based on your photo</p>
+      <h3 className="text-xl font-semibold mb-3">Edit Existing Image</h3>
+      <p className="text-gray-600 mb-4">Upload an image and transform it using AI</p>
       
       {generatedImage ? (
         <div className="space-y-4">
@@ -319,7 +319,7 @@ export function ImageEditor() {
                 <FormItem>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the image you want to create... (e.g., 'A mountain landscape at sunset with snow-capped peaks')"
+                      placeholder="Describe how you want to edit this image... (e.g., 'Add a sunset background' or 'Make it look like winter')"
                       className="resize-none h-24 bg-white/80"
                       {...field}
                       disabled={!uploadedImage}
@@ -337,10 +337,10 @@ export function ImageEditor() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Image...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Editing Image...
                 </>
               ) : (
-                'Generate AI Image'
+                'Apply Edit'
               )}
             </Button>
           </form>

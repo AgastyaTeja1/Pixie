@@ -159,7 +159,7 @@ export function ImageGenerator() {
 
   return (
     <div className="bg-gradient-to-br from-[#5851DB]/10 to-[#E1306C]/10 p-6 rounded-xl">
-      <h3 className="text-xl font-semibold mb-3">Generate from Text</h3>
+      <h3 className="text-xl font-semibold mb-3">AI Image Creator</h3>
       <p className="text-gray-600 mb-4">Create stunning images from text descriptions</p>
       
       {generatedImage ? (
@@ -213,7 +213,7 @@ export function ImageGenerator() {
               onClick={() => {
                 // Create a post with this image
                 const a = document.createElement('a');
-                a.href = '/post';
+                a.href = `/post?imageUrl=${encodeURIComponent(generatedImage || '')}`;
                 a.click();
               }}
               className="flex-1 pixie-gradient text-white hover:shadow-lg"
