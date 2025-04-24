@@ -1,13 +1,18 @@
-import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
+import { createContext, useState, useEffect, ReactNode, useContext, useCallback } from 'react';
 import { AuthContext } from './AuthContext';
 import { WebSocketMessage } from '@shared/types';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface WebSocketContextType {
   connected: boolean;
   sendMessage: (message: WebSocketMessage) => void;
   messages: Record<number, WebSocketMessage[]>;
   onlineUsers: number[];
+  connectionUpdates: Record<string, string>; // Map of userId to connection status
+  recentNotifications: WebSocketMessage[];
+  likeUpdates: {postId: number, count: number}[];
+  commentUpdates: {postId: number, count: number}[];
 }
 
 export const WebSocketContext = createContext<WebSocketContextType>({
@@ -15,6 +20,10 @@ export const WebSocketContext = createContext<WebSocketContextType>({
   sendMessage: () => {},
   messages: {},
   onlineUsers: [],
+  connectionUpdates: {},
+  recentNotifications: [],
+  likeUpdates: [],
+  commentUpdates: [],
 });
 
 interface WebSocketProviderProps {
@@ -26,8 +35,69 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<Record<number, WebSocketMessage[]>>({});
   const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
+  const [connectionUpdates, setConnectionUpdates] = useState<Record<string, string>>({});
+  const [recentNotifications, setRecentNotifications] = useState<WebSocketMessage[]>([]);
+  const [likeUpdates, setLikeUpdates] = useState<{postId: number, count: number}[]>([]);
+  const [commentUpdates, setCommentUpdates] = useState<{postId: number, count: number}[]>([]);
+  
   const { user, isAuthenticated } = useContext(AuthContext);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Handle notification toasts based on type
+  const handleNotificationToast = useCallback((data: WebSocketMessage) => {
+    const { type, fromUserId, fromUsername, entityId } = data.payload;
+    
+    // Notification content based on type
+    const notificationContent: Record<string, {title: string, description: string}> = {
+      'like': {
+        title: 'New like',
+        description: `${fromUsername} liked your post`
+      },
+      'comment': {
+        title: 'New comment',
+        description: `${fromUsername} commented on your post`
+      },
+      'connection_request': {
+        title: 'Connection request',
+        description: `${fromUsername} wants to connect with you`
+      },
+      'connection_accepted': {
+        title: 'Connection accepted',
+        description: `${fromUsername} accepted your connection request`
+      },
+      'connection_rejected': {
+        title: 'Connection rejected',
+        description: `${fromUsername} rejected your connection request`
+      },
+      'post_share': {
+        title: 'Post shared',
+        description: `${fromUsername} shared a post with you`
+      },
+      'mention': {
+        title: 'You were mentioned',
+        description: `${fromUsername} mentioned you in a comment`
+      },
+      'new_post': {
+        title: 'New post',
+        description: `${fromUsername} just posted something new`
+      }
+    };
+    
+    if (type && notificationContent[type]) {
+      toast(notificationContent[type]);
+      
+      // Also invalidate related queries based on notification type
+      if (type === 'like' || type === 'comment') {
+        queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+        if (entityId) {
+          queryClient.invalidateQueries({ queryKey: [`/api/posts/${entityId}`] });
+        }
+      } else if (type.startsWith('connection_')) {
+        queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
+      }
+    }
+  }, [toast, queryClient]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -103,7 +173,102 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
           case 'offline':
             setOnlineUsers(prev => prev.filter(id => id !== data.payload.userId));
             break;
+          
+          case 'online-users':
+            // Update the list of online users
+            setOnlineUsers(data.payload.users || []);
+            break;
+            
+          case 'notification':
+            // Handle notifications
+            setRecentNotifications(prev => {
+              // Keep max 10 notifications in the recent list
+              const newList = [data, ...prev].slice(0, 10);
+              return newList;
+            });
+            
+            // Show notification toast based on type
+            if (data.payload.type) {
+              handleNotificationToast(data);
+            }
+            
+            // Invalidate notifications cache to trigger a refresh
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+            break;
+            
+          case 'connection_status':
+            // Update connection status
+            const { fromUserId, status } = data.payload;
+            if (fromUserId && status) {
+              setConnectionUpdates(prev => ({
+                ...prev,
+                [fromUserId]: status
+              }));
+              
+              // Invalidate relevant connections queries
+              queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
+              queryClient.invalidateQueries({ queryKey: [`/api/connections/status/${fromUserId}`] });
+              
+              // Show notification based on status
+              const statusMessages: Record<string, string> = {
+                'pending': 'Connection request received',
+                'accepted': 'Connection request accepted',
+                'rejected': 'Connection request rejected'
+              };
+              
+              const statusMessage = statusMessages[status as keyof typeof statusMessages];
+              if (statusMessage) {
+                toast({
+                  title: statusMessage,
+                  description: `User ID: ${fromUserId}`
+                });
+              }
+            }
+            break;
+            
+          case 'like_update':
+            // Update like count for a post
+            const { postId, count } = data.payload;
+            setLikeUpdates(prev => {
+              const existing = prev.findIndex(item => item.postId === postId);
+              if (existing >= 0) {
+                const updated = [...prev];
+                updated[existing] = { postId, count };
+                return updated;
+              }
+              return [...prev, { postId, count }];
+            });
+            
+            // Invalidate post queries to refresh like counts
+            queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+            queryClient.invalidateQueries({ queryKey: [`/api/posts/${postId}`] });
+            break;
+            
+          case 'comment_update':
+            // Update comment count for a post
+            const { postId: commentPostId, count: commentCount } = data.payload;
+            setCommentUpdates(prev => {
+              const existing = prev.findIndex(item => item.postId === commentPostId);
+              if (existing >= 0) {
+                const updated = [...prev];
+                updated[existing] = { postId: commentPostId, count: commentCount };
+                return updated;
+              }
+              return [...prev, { postId: commentPostId, count: commentCount }];
+            });
+            
+            // Invalidate post queries to refresh comment counts
+            queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+            queryClient.invalidateQueries({ queryKey: [`/api/posts/${commentPostId}`] });
+            break;
+          
+          case 'share_post':
+            // Handle post sharing
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+            break;
+            
           default:
+            console.log('Unhandled WebSocket message type:', data.type);
             break;
         }
       } catch (error) {
@@ -125,7 +290,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         ws.close();
       }
     };
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, toast, queryClient, handleNotificationToast]);
 
   const sendMessage = (message: WebSocketMessage) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -160,6 +325,10 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         sendMessage,
         messages,
         onlineUsers,
+        connectionUpdates,
+        recentNotifications,
+        likeUpdates,
+        commentUpdates
       }}
     >
       {children}

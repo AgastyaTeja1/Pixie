@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Trash2, U
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { WebSocketContext } from '@/context/WebSocketContext';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 

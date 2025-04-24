@@ -115,16 +115,30 @@ export interface SharePostPayload {
 export interface NotificationPayload {
   type: string;
   fromUserId: number;
+  fromUsername?: string;
   entityId?: number;
+}
+
+export interface LikeUpdatePayload {
+  postId: number;
+  count: number;
+  userId?: number;
+}
+
+export interface CommentUpdatePayload {
+  postId: number;
+  count: number;
+  userId?: number;
+  commentId?: number;
 }
 
 export interface WebSocketMessage {
   type: 'message' | 'typing' | 'read' | 'online' | 'offline' | 'online-users' | 
         'connection_request' | 'connection_update' | 'connection_status' | 
-        'notification' | 'share_post';
+        'notification' | 'share_post' | 'like_update' | 'comment_update';
   payload: MessagePayload | TypingPayload | ReadPayload | OnlinePayload | 
           OnlineUsersPayload | ConnectionPayload | SharePostPayload | 
-          NotificationPayload | any;
+          NotificationPayload | LikeUpdatePayload | CommentUpdatePayload | any;
 }
 
 // AI Image generation types

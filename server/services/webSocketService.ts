@@ -92,16 +92,16 @@ export function setupWebSocketServer(wss: WebSocketServer) {
             
           case 'share_post':
             // User is sharing a post with a connection
-            const { fromUserId, toUserId, postId } = data.payload;
-            console.log(`User ${fromUserId} is sharing post ${postId} with user ${toUserId}`);
+            const { fromUserId, toUserId, postId: sharedPostId } = data.payload;
+            console.log(`User ${fromUserId} is sharing post ${sharedPostId} with user ${toUserId}`);
             
             // Create notification for shared post
-            if (fromUserId && toUserId && postId) {
+            if (fromUserId && toUserId && sharedPostId) {
               await storage.createNotification({
                 type: 'post_share',
                 userId: toUserId,
                 fromUserId: fromUserId,
-                entityId: postId
+                entityId: sharedPostId
               });
               
               // Forward notification to recipient
@@ -110,7 +110,7 @@ export function setupWebSocketServer(wss: WebSocketServer) {
                 payload: {
                   type: 'post_share',
                   fromUserId,
-                  entityId: postId
+                  entityId: sharedPostId
                 }
               });
             }
@@ -144,6 +144,128 @@ export function setupWebSocketServer(wss: WebSocketServer) {
                 status: status
               }
             });
+            break;
+            
+          case 'like_update':
+            // Post like update
+            const { postId: likedPostId, userId: likeUserId } = data.payload;
+            console.log(`Like update for post ${likedPostId} from user ${likeUserId}`);
+            
+            try {
+              // Get the post to know its owner
+              const post = await storage.getPostById(likedPostId);
+              if (post && likeUserId !== post.userId) {
+                // Get the user who liked the post
+                const likeUser = await storage.getUser(likeUserId);
+                
+                // Create notification for post owner
+                await storage.createNotification({
+                  type: 'like',
+                  userId: post.userId,
+                  fromUserId: likeUserId,
+                  entityId: likedPostId
+                });
+                
+                // Get the post like count
+                const likeCount = await storage.getPostLikeCount(likedPostId);
+                
+                // Notify post owner
+                notifyUser(post.userId, {
+                  type: 'notification',
+                  payload: {
+                    type: 'like',
+                    fromUserId: likeUserId,
+                    fromUsername: likeUser?.username,
+                    entityId: likedPostId
+                  }
+                });
+                
+                // Broadcast like count update to all users
+                broadcastPostUpdate(likedPostId, 'like_update', likeCount);
+              }
+            } catch (error) {
+              console.error('Error handling like update:', error);
+            }
+            break;
+            
+          case 'comment_update':
+            // Post comment update
+            const { postId: commentPostId, userId: commentUserId, commentId } = data.payload;
+            console.log(`Comment update for post ${commentPostId} from user ${commentUserId}`);
+            
+            try {
+              // Get the post to know its owner
+              const post = await storage.getPostById(commentPostId);
+              if (post && commentUserId !== post.userId) {
+                // Get the user who commented
+                const commentUser = await storage.getUser(commentUserId);
+                
+                // Create notification for post owner
+                await storage.createNotification({
+                  type: 'comment',
+                  userId: post.userId,
+                  fromUserId: commentUserId,
+                  entityId: commentPostId
+                });
+                
+                // Get the post comment count
+                const commentCount = await storage.getPostCommentCount(commentPostId);
+                
+                // Notify post owner
+                notifyUser(post.userId, {
+                  type: 'notification',
+                  payload: {
+                    type: 'comment',
+                    fromUserId: commentUserId,
+                    fromUsername: commentUser?.username,
+                    entityId: commentPostId
+                  }
+                });
+                
+                // Broadcast comment count update to all users
+                broadcastPostUpdate(commentPostId, 'comment_update', commentCount);
+              }
+            } catch (error) {
+              console.error('Error handling comment update:', error);
+            }
+            break;
+            
+          case 'new_post':
+            // New post created
+            const { postId: newPostId, userId: posterUserId } = data.payload;
+            console.log(`New post ${newPostId} created by user ${posterUserId}`);
+            
+            try {
+              // Get the user's connections
+              const connections = await storage.getAcceptedConnections(posterUserId);
+              const user = await storage.getUser(posterUserId);
+              
+              // Notify connections about the new post
+              for (const connection of connections) {
+                const connectedUserId = connection.user.id;
+                
+                // Create notification
+                await storage.createNotification({
+                  type: 'new_post',
+                  userId: connectedUserId,
+                  fromUserId: posterUserId,
+                  entityId: newPostId
+                });
+                
+                // Send real-time notification
+                notifyUser(connectedUserId, {
+                  type: 'notification',
+                  payload: {
+                    type: 'new_post',
+                    fromUserId: posterUserId,
+                    fromUsername: user?.username,
+                    entityId: newPostId
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('Error handling new post notification:', error);
+            }
             break;
             
           default:
@@ -230,4 +352,17 @@ export function isUserOnline(userId: number): boolean {
 // Get all online users
 export function getOnlineUsers(): number[] {
   return Array.from(userConnections.keys());
+}
+
+// Broadcast post updates to all connected users
+export function broadcastPostUpdate(postId: number, updateType: 'like_update' | 'comment_update', count: number) {
+  const notification = {
+    type: updateType,
+    payload: {
+      postId,
+      count
+    }
+  };
+  
+  broadcastNotification(notification);
 }
