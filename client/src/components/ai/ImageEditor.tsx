@@ -2,6 +2,7 @@ import { useState, ChangeEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useLocation } from 'wouter';
 import { Loader2, Upload, Download, Share2, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

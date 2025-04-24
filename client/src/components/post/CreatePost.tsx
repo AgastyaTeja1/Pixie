@@ -51,22 +51,39 @@ export function CreatePost() {
     },
   });
   
-  // Check if an image URL is provided in the query parameters
+  // Check for an image URL in localStorage or query parameters
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const imageUrl = searchParams.get('imageUrl');
+    // First try to get image from localStorage (for AI-generated images)
+    const storedImage = localStorage.getItem('pixie_post_image');
     
-    if (imageUrl) {
-      // Set the image from the URL parameter
-      setUploadedImage(imageUrl);
+    if (storedImage) {
+      console.log('Found image in localStorage');
+      // Set the image from localStorage
+      setUploadedImage(storedImage);
       
-      // Optional: Set a default caption that mentions AI generation
-      if (imageUrl.includes('openai') || imageUrl.includes('dall-e')) {
-        form.setValue('caption', 'Created with Pixie AI ✨');
+      // Set a default caption for AI-generated images
+      form.setValue('caption', 'Created with Pixie AI ✨');
+      
+      // Clear the stored image to avoid it being used again
+      localStorage.removeItem('pixie_post_image');
+    } else {
+      // Fallback to URL parameters
+      const searchParams = new URLSearchParams(window.location.search);
+      const imageUrl = searchParams.get('imageUrl');
+      
+      if (imageUrl) {
+        console.log('Found image in URL parameters');
+        // Set the image from the URL parameter
+        setUploadedImage(imageUrl);
+        
+        // Optional: Set a default caption that mentions AI generation
+        if (imageUrl.includes('openai') || imageUrl.includes('dall-e')) {
+          form.setValue('caption', 'Created with Pixie AI ✨');
+        }
+        
+        // Clear the URL parameter without refreshing the page
+        navigate('/post', { replace: true });
       }
-      
-      // Clear the URL parameter without refreshing the page
-      navigate('/post', { replace: true });
     }
   }, [location, form, navigate]);
 
