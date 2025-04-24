@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="dots-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+      <circle cx="5" cy="5" r="2" fill="#000" fill-opacity="0.5" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" fill="#ffde59" />
+  
+  <!-- Comic panels -->
+  <g>
+    <!-- Top left panel -->
+    <rect x="20" y="20" width="170" height="170" fill="#ff5555" stroke="#000" stroke-width="5" />
+    <circle cx="105" cy="105" r="60" fill="#5d9cec" stroke="#000" stroke-width="4" />
+    <path d="M80,105 L130,105 M105,80 L105,130" stroke="#000" stroke-width="4" />
+    
+    <!-- Top right panel -->
+    <rect x="210" y="20" width="170" height="170" fill="#50e3c2" stroke="#000" stroke-width="5" />
+    <rect x="255" y="65" width="80" height="80" fill="#ff5555" stroke="#000" stroke-width="4" />
+    <circle cx="255" cy="65" r="20" fill="#ffde59" stroke="#000" stroke-width="3" />
+    
+    <!-- Bottom left panel -->
+    <rect x="20" y="210" width="170" height="170" fill="#d786fe" stroke="#000" stroke-width="5" />
+    <path d="M20,380 L190,210" stroke="#000" stroke-width="4" />
+    <path d="M20,210 L190,380" stroke="#000" stroke-width="4" />
+    
+    <!-- Bottom right panel -->
+    <rect x="210" y="210" width="170" height="170" fill="#5d9cec" stroke="#000" stroke-width="5" />
+    <rect x="235" y="235" width="120" height="120" fill="#ffde59" stroke="#000" stroke-width="3" fill-opacity="0.7" />
+    <rect x="235" y="235" width="120" height="120" fill="url(#dots-pattern)" />
+  </g>
+
+  <!-- Comic Speech Bubble -->
+  <g>
+    <path d="M280,120 C310,120 330,100 330,80 C330,60 310,40 280,40 C250,40 230,60 230,80 C230,100 250,120 280,120 L290,140 Z" fill="#ffffff" stroke="#000" stroke-width="3" />
+    <text x="280" y="85" text-anchor="middle" font-family="Impact, Charcoal, sans-serif" font-size="20" fill="#000">POW!</text>
+  </g>
+  
+  <!-- Halftone Effects -->
+  <g>
+    <circle cx="105" cy="295" r="60" fill="url(#dots-pattern)" />
+  </g>
+
+  <!-- Title -->
+  <text x="200" y="380" text-anchor="middle" font-family="Impact, Charcoal, sans-serif" font-size="24" fill="#000" stroke="#fff" stroke-width="1">POP ART STYLE</text>
+</svg>

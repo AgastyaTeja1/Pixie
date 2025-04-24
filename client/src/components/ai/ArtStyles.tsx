@@ -19,49 +19,49 @@ const ART_STYLES: ArtStyle[] = [
   {
     id: 'watercolor',
     name: 'Watercolor',
-    imageUrl: '/styles/watercolor.jpg',
+    imageUrl: '/styles/watercolor.svg',
     description: 'Soft, translucent colors with gentle brushstrokes and a dreamy effect'
   },
   {
     id: 'oil-painting',
     name: 'Oil Painting',
-    imageUrl: '/styles/oil-painting.jpg',
+    imageUrl: '/styles/oil-painting.svg',
     description: 'Rich textures and vibrant colors with visible brushwork and depth'
   },
   {
     id: 'pixel-art',
     name: 'Pixel Art',
-    imageUrl: '/styles/pixel-art.jpg',
+    imageUrl: '/styles/pixel-art.svg',
     description: 'Retro aesthetic with visible square pixels and limited color palette'
   },
   {
     id: 'ghibli',
     name: 'Ghibli',
-    imageUrl: '/styles/ghibli.jpg',
+    imageUrl: '/styles/ghibli.svg',
     description: 'Whimsical, colorful animation style inspired by Studio Ghibli films'
   },
   {
     id: 'cyberpunk',
     name: 'Cyberpunk',
-    imageUrl: '/styles/cyberpunk.jpg',
+    imageUrl: '/styles/cyberpunk.svg',
     description: 'Futuristic urban scenes with neon lights, technology, and dark atmosphere'
   },
   {
     id: 'pop-art',
     name: 'Pop Art',
-    imageUrl: '/styles/pop-art.jpg',
+    imageUrl: '/styles/pop-art.svg',
     description: 'Bold colors, patterns, and outlines inspired by comic books and advertisements'
   },
   {
     id: 'manga',
     name: 'Manga',
-    imageUrl: '/styles/manga.jpg',
+    imageUrl: '/styles/manga.svg',
     description: 'Japanese comic style with dramatic expressions and distinctive line work'
   },
   {
     id: 'vaporwave',
     name: 'Vaporwave',
-    imageUrl: '/styles/vaporwave.jpg',
+    imageUrl: '/styles/vaporwave.svg',
     description: 'Retro-futuristic aesthetic with pastel colors, glitch effects, and 80s/90s nostalgia'
   }
 ];
