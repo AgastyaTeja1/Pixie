@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Settings, Edit3 } from 'lucide-react';
-import { UserWithStats } from '@shared/types';
+import { UserWithStats, WebSocketMessage } from '@shared/types';
 import { useAuth } from '@/hooks/use-auth';
 import { getInitials } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { WebSocketContext } from '@/context/WebSocketContext';
 import { EditProfileDialog } from './EditProfileDialog';
 
 interface ProfileHeaderProps {
@@ -26,6 +27,7 @@ export function ProfileHeader({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { connectionUpdates, sendMessage } = useContext(WebSocketContext);
   const [connectionStatus, setConnectionStatus] = useState({
     isConnected,
     isPending,
@@ -35,6 +37,37 @@ export function ProfileHeader({
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   
   const isOwnProfile = user?.id === profileUser.id;
+  
+  // Listen for real-time connection status updates
+  useEffect(() => {
+    // Check if there's an update for this profile user
+    const statusKey = profileUser?.id?.toString();
+    if (statusKey && connectionUpdates[statusKey]) {
+      const status = connectionUpdates[statusKey];
+      
+      // Update the connection status based on the update received
+      if (status === 'accepted') {
+        setConnectionStatus(prev => ({
+          ...prev,
+          isConnected: true,
+          isPending: false,
+          hasPendingRequest: false
+        }));
+      } else if (status === 'rejected') {
+        setConnectionStatus(prev => ({
+          ...prev,
+          isConnected: false,
+          isPending: false,
+          hasPendingRequest: false
+        }));
+      } else if (status === 'pending') {
+        setConnectionStatus(prev => ({
+          ...prev,
+          hasPendingRequest: true
+        }));
+      }
+    }
+  }, [connectionUpdates, profileUser.id]);
   
   const handleConnection = async () => {
     if (isOwnProfile) return;
@@ -49,6 +82,19 @@ export function ProfileHeader({
           isPending: false,
           hasPendingRequest: false
         });
+        
+        // Send real-time connection update
+        if (user) {
+          sendMessage({
+            type: 'connection_status',
+            payload: {
+              fromUserId: user.id,
+              toUserId: profileUser.id,
+              status: 'disconnected'
+            }
+          });
+        }
+        
         toast({
           title: 'Disconnected',
           description: `You are no longer connected with ${profileUser.username}`,
@@ -61,6 +107,19 @@ export function ProfileHeader({
           isPending: false,
           hasPendingRequest: false
         });
+        
+        // Send real-time connection update
+        if (user) {
+          sendMessage({
+            type: 'connection_status',
+            payload: {
+              fromUserId: user.id,
+              toUserId: profileUser.id,
+              status: 'cancelled'
+            }
+          });
+        }
+        
         toast({
           title: 'Request cancelled',
           description: `You cancelled your connection request to ${profileUser.username}`,
@@ -73,6 +132,19 @@ export function ProfileHeader({
           isPending: false,
           hasPendingRequest: false
         });
+        
+        // Send real-time connection update
+        if (user) {
+          sendMessage({
+            type: 'connection_status',
+            payload: {
+              fromUserId: user.id,
+              toUserId: profileUser.id,
+              status: 'accepted'
+            }
+          });
+        }
+        
         toast({
           title: 'Connected',
           description: `You are now connected with ${profileUser.username}`,
@@ -85,6 +157,17 @@ export function ProfileHeader({
           isPending: true,
           hasPendingRequest: false
         });
+        
+        // Send real-time connection update
+        sendMessage({
+          type: 'connection_status',
+          payload: {
+            fromUserId: user.id,
+            toUserId: profileUser.id,
+            status: 'pending'
+          }
+        });
+        
         toast({
           title: 'Request sent',
           description: `You sent a connection request to ${profileUser.username}`,

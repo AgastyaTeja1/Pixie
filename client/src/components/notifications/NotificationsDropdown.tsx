@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Bell, Check, X } from 'lucide-react';
@@ -12,8 +12,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { formatTimeAgo, getInitials } from '@/lib/utils';
-import { NotificationWithUser } from '@shared/types';
+import { NotificationWithUser, WebSocketMessage } from '@shared/types';
 import { toast } from '@/hooks/use-toast';
+import { WebSocketContext } from '@/context/WebSocketContext';
+import { useAuth } from '@/hooks/use-auth';
 
 export function NotificationsDropdown() {
   const [, navigate] = useLocation();
