@@ -237,9 +237,10 @@ export function ImageGenerator() {
             <Button 
               onClick={() => {
                 // Create a post with this image
-                const a = document.createElement('a');
-                a.href = `/post?imageUrl=${encodeURIComponent(generatedImage || '')}`;
-                a.click();
+                const encodedUrl = encodeURIComponent(generatedImage || '');
+                console.log('Redirecting to post creation with image:', encodedUrl);
+                // Use proper navigation instead of manually creating an anchor
+                window.location.href = `/post?imageUrl=${encodedUrl}`;
               }}
               className="flex-1 pixie-gradient text-white hover:shadow-lg"
             >

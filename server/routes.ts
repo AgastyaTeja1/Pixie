@@ -93,6 +93,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/generate', requireAuth, aiController.generateImage);
   app.post('/api/ai/edit', requireAuth, aiController.editImage);
   app.post('/api/ai/style', requireAuth, aiController.applyStyle);
+  app.post('/api/ai/images/:id/save', requireAuth, aiController.saveAiImage);
+  app.post('/api/ai/images/save', requireAuth, aiController.saveAiImageDirectly);
   
   // Notification routes
   app.get('/api/notifications', requireAuth, notificationController.getNotifications);
