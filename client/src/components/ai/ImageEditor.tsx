@@ -93,20 +93,33 @@ export function ImageEditor() {
     
     setIsLoading(true);
     try {
+      console.log('Starting image edit with prompt:', values.prompt);
+      
       const response = await apiRequest('POST', '/api/ai/edit', {
         image: uploadedImage,
         prompt: values.prompt,
       });
       
-      const data = await response.json();
-      setGeneratedImage(data.imageUrl);
-      setGeneratedImageId(data.id);
+      console.log('Response received:', response);
       
-      toast({
-        title: 'Image edited',
-        description: 'Your image has been successfully transformed!',
-      });
+      const data = await response.json();
+      console.log('Processed response data:', data);
+      
+      if (data && data.imageUrl) {
+        setGeneratedImage(data.imageUrl);
+        setGeneratedImageId(data.id);
+        
+        toast({
+          title: 'Image edited',
+          description: 'Your image has been successfully transformed!',
+        });
+      } else {
+        console.error('Missing data in response:', data);
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
+      console.error('Error editing image:', error);
+      
       toast({
         title: 'Edit failed',
         description: 'Failed to edit the image. Please try again.',
