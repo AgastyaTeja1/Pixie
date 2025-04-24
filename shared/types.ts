@@ -1,4 +1,4 @@
-import { User, Post, Comment, Message, Connection, AiImage, Notification } from "./schema";
+import { User, Post, Comment, Message, Connection, AiImage, DbNotification } from "./schema";
 
 // Auth types
 export interface AuthResponse {
@@ -168,7 +168,7 @@ export interface ArtStyle {
 }
 
 // Notification types
-export interface NotificationWithUser extends Notification {
+export interface NotificationWithUser extends DbNotification {
   fromUser: {
     id: number;
     username: string;
