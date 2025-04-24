@@ -292,7 +292,7 @@ export function FeedPost({ post }: FeedPostProps) {
             postId: post.id,
             userId: user.id,
             count: commentCount + 1,
-            commentId: response && typeof response === 'object' ? response.id : undefined
+            commentId: response && typeof response === 'object' && 'id' in response ? response.id : undefined
           }
         });
         
