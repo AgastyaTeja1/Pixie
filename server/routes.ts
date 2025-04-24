@@ -61,6 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Connection routes
   app.post('/api/connections/request/:userId', requireAuth, userController.requestConnection);
   app.post('/api/connections/accept/:userId', requireAuth, userController.acceptConnection);
+  app.post('/api/connections/reject/:userId', requireAuth, userController.rejectConnectionRequest);
   app.delete('/api/connections/request/:userId', requireAuth, userController.cancelConnectionRequest);
   app.delete('/api/connections/:userId', requireAuth, userController.removeConnection);
   app.get('/api/connections', requireAuth, userController.getConnections);

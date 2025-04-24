@@ -64,9 +64,11 @@ export function NotificationsDropdown() {
       const acceptResponse = await apiRequest('POST', `/api/connections/accept/${notification.fromUserId}`);
       console.log('Accept connection response:', await acceptResponse.text());
       
-      // Refresh notifications
-      console.log('Refreshing notifications...');
+      // Refresh notifications and connection status
+      console.log('Refreshing notifications and connection status...');
       await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/connections/status'] }); // Invalidate connection status
+      await queryClient.invalidateQueries({ queryKey: ['/api/chat/connections'] }); // Invalidate chat connections
       
       toast({
         title: "Connection accepted",
@@ -87,16 +89,25 @@ export function NotificationsDropdown() {
     e.stopPropagation(); // Prevent dropdown item click event
     
     try {
+      console.log('Rejecting connection request, notification ID:', notification.id);
+      
       // Mark notification as read
       if (!notification.isRead) {
-        await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+        console.log('Marking notification as read...');
+        const readResponse = await apiRequest('POST', `/api/notifications/read/${notification.id}`);
+        console.log('Mark as read response:', await readResponse.text());
       }
       
-      // Reject connection request (delete the connection)
-      await apiRequest('DELETE', `/api/connections/request/${notification.fromUserId}`);
+      // Reject connection request
+      console.log('Rejecting connection from user ID:', notification.fromUserId);
+      const rejectResponse = await apiRequest('POST', `/api/connections/reject/${notification.fromUserId}`);
+      console.log('Reject connection response:', await rejectResponse.text());
       
-      // Refresh notifications
+      // Refresh notifications, connection status, and chat connections
+      console.log('Refreshing notifications and connection status...');
       await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/connections/status'] }); // Invalidate connection status
+      await queryClient.invalidateQueries({ queryKey: ['/api/chat/connections'] }); // Invalidate chat connections
       
       toast({
         title: "Connection rejected",
@@ -171,6 +182,8 @@ export function NotificationsDropdown() {
         return `${username} sent you a connection request`;
       case 'connection_accepted':
         return `${username} accepted your connection request`;
+      case 'connection_rejected':
+        return `${username} rejected your connection request`;
       case 'save':
         return `${username} saved your post`;
       default:
