@@ -10,8 +10,18 @@ export const setupProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.session.userId!;
     
-    // Validate input
-    const parsedProfileData = profileSetupSchema.parse(req.body);
+    // Get the profile data from the request body
+    let profileData = {...req.body};
+    
+    // If a profile image is provided, ensure it's stored locally
+    if (profileData.profileImage && typeof profileData.profileImage === 'string') {
+      console.log(`Ensuring local storage for profile image: ${profileData.profileImage}`);
+      profileData.profileImage = await ensureLocalImage(profileData.profileImage);
+      console.log(`Profile image saved locally: ${profileData.profileImage}`);
+    }
+    
+    // Validate input after ensuring local image
+    const parsedProfileData = profileSetupSchema.parse(profileData);
     
     // Check if username is already taken
     const existingUserByUsername = await storage.getUserByUsername(parsedProfileData.username);
