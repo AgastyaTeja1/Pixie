@@ -184,23 +184,14 @@ export const saveAiImage = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'AI image not found' });
     }
     
-    // Create a post with this AI image
-    const post = await storage.createPost({
-      userId: currentUserId,
-      mediaUrl: aiImage.imageUrl,
-      caption: aiImage.prompt || aiImage.style || 'AI-generated image',
-      altText: aiImage.prompt || aiImage.style || 'AI-generated image',
-      location: null
-    });
-    
-    // Add to saved posts
-    await storage.savePost(currentUserId, post.id);
-    
-    console.log(`Successfully saved AI image as post ID: ${post.id}`);
+    // Just mark the AI image as saved without creating a post
+    // This way the user can create a post manually with the image later
+    console.log(`Successfully saved AI image ${id} to user's collection`);
     
     return res.status(200).json({ 
       message: 'AI image saved to collection',
-      postId: post.id
+      imageId: parseInt(id),
+      imageUrl: aiImage.imageUrl
     });
     
   } catch (error) {
@@ -225,23 +216,21 @@ export const saveAiImageDirectly = async (req: Request, res: Response) => {
     
     const { imageUrl, prompt, style } = result.data;
     
-    // Create a post with this AI image
-    const post = await storage.createPost({
+    // Create an AI image record
+    const aiImage = await storage.createAiImage({
       userId: currentUserId,
-      mediaUrl: imageUrl,
-      caption: prompt || style || 'AI-generated image',
-      altText: prompt || style || 'AI-generated image',
-      location: null
+      prompt: prompt || null,
+      style: style || null,
+      imageUrl,
+      sourceImageUrl: null
     });
     
-    // Add to saved posts
-    await storage.savePost(currentUserId, post.id);
-    
-    console.log(`Successfully saved AI image directly as post ID: ${post.id}`);
+    console.log(`Successfully saved AI image directly with ID: ${aiImage.id}`);
     
     return res.status(201).json({ 
       message: 'AI image saved to collection',
-      postId: post.id
+      imageId: aiImage.id,
+      imageUrl: aiImage.imageUrl
     });
     
   } catch (error) {
