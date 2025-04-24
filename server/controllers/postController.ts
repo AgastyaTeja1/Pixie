@@ -3,17 +3,28 @@ import { storage } from '../storage';
 import { insertPostSchema, insertCommentSchema } from '@shared/schema';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
+import { ensureLocalImage } from '../services/imageService';
 
 // Create a new post
 export const createPost = async (req: Request, res: Response) => {
   try {
     const userId = req.session.userId!;
     
-    // Validate input
-    const parsedPostData = insertPostSchema.parse({
+    // Get the post data from the request
+    const postData = {
       ...req.body,
       userId
-    });
+    };
+    
+    // Ensure that the mediaUrl is a local URL to prevent expiring URLs
+    if (postData.mediaUrl && typeof postData.mediaUrl === 'string') {
+      console.log(`Ensuring local storage for post media: ${postData.mediaUrl}`);
+      postData.mediaUrl = await ensureLocalImage(postData.mediaUrl);
+      console.log(`Post media saved locally: ${postData.mediaUrl}`);
+    }
+    
+    // Validate input after ensuring local image
+    const parsedPostData = insertPostSchema.parse(postData);
     
     // Create post
     const newPost = await storage.createPost(parsedPostData);

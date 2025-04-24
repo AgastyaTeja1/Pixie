@@ -216,12 +216,19 @@ export const saveAiImageDirectly = async (req: Request, res: Response) => {
     
     const { imageUrl, prompt, style } = result.data;
     
+    // Import the image service at runtime to avoid circular dependencies
+    const { ensureLocalImage } = await import('../services/imageService');
+    
+    // Ensure the image is saved locally
+    const localImageUrl = await ensureLocalImage(imageUrl);
+    console.log(`Ensured local image storage: ${imageUrl} -> ${localImageUrl}`);
+    
     // Create an AI image record
     const aiImage = await storage.createAiImage({
       userId: currentUserId,
       prompt: prompt || null,
       style: style || null,
-      imageUrl,
+      imageUrl: localImageUrl,
       sourceImageUrl: null
     });
     

@@ -3,6 +3,7 @@ import { storage } from '../storage';
 import { profileSetupSchema } from '@shared/schema';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
+import { ensureLocalImage } from '../services/imageService';
 
 // Set up user profile
 export const setupProfile = async (req: Request, res: Response) => {
