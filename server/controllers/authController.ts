@@ -22,6 +22,20 @@ export const signup = async (req: Request, res: Response) => {
     // Set session
     req.session.userId = newUser.id;
     
+    // Force save session for deployed environments
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+    
+    console.log(`User signed up: ${newUser.id}, Session ID: ${req.sessionID}`);
+    
     // Send response with user (excluding password)
     const { password, ...userWithoutPassword } = newUser;
     
@@ -58,6 +72,20 @@ export const login = async (req: Request, res: Response) => {
     
     // Set session
     req.session.userId = user.id;
+    
+    // Force save session for deployed environments
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+    
+    console.log(`User logged in: ${user.id}, Session ID: ${req.sessionID}`);
     
     // Check if user has completed profile setup
     const isNewUser = !user.username;

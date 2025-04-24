@@ -28,13 +28,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupWebSocketServer(wss);
   
   // Setup session middleware
+  const isProduction = process.env.NODE_ENV === 'production';
   const sessionMiddleware = session({
     secret: 'pixie-app-session-secret',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      secure: false, // Setting to false even in production to avoid issues with Replit deployment
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days for longer sessions
     },
     store: new PgStore({
       pool,

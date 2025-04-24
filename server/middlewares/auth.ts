@@ -19,7 +19,17 @@ export const authenticateUser = async (
       } else {
         // Clear invalid session
         req.session.userId = undefined;
+        
+        // In deployment, we need to explicitly save session changes
+        if (req.session.save) {
+          req.session.save();
+        }
       }
+    }
+    
+    // Debug log to track authentication process
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`Auth middleware: userId=${userId}, hasUser=${!!req.user}`);
     }
     
     next();
