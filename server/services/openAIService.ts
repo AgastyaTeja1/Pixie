@@ -27,7 +27,10 @@ export async function generateImage(prompt: string): Promise<string> {
         quality: "standard",
       });
       
-      return response.data[0].url;
+      if (response.data && response.data.length > 0 && response.data[0].url) {
+        return response.data[0].url;
+      }
+      throw new Error('Invalid response from OpenAI API');
     } else {
       // Use mock data for development
       console.log('Using mock image data (no API key)');
@@ -64,7 +67,10 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
         quality: "standard",
       });
       
-      return response.data[0].url;
+      if (response.data && response.data.length > 0 && response.data[0].url) {
+        return response.data[0].url;
+      }
+      throw new Error('Invalid response from OpenAI API');
     } else {
       // Use mock data for development
       console.log('Using mock image data (no API key)');
@@ -82,16 +88,31 @@ export async function applyStyle(imageBase64: string, style: string): Promise<st
   try {
     // Use OpenAI API if key is available
     if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('dummy')) {
-      // Real implementation would convert base64 to PNG and use OpenAI API
+      // For DALL-E 3, we need to be very explicit about keeping the original image content
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Transform this image into ${style} style`,
+        prompt: `
+          I have this specific image that I want you to transform into ${style} style.
+          
+          IMPORTANT: You must preserve the exact same content as the original image - same objects, same people, same composition.
+          Do NOT create a new random image of ${style} style.
+          Instead, apply the ${style} artistic style to the EXISTING image I've provided, maintaining all subject matter.
+          
+          For example:
+          - If it's a photo of a person, keep the same person in the same pose, but render them in ${style} style
+          - If it's a landscape, keep the same landscape features but render them in ${style} style
+          
+          The final result should be clearly recognizable as the original image, just with ${style} style applied.
+        `,
         n: 1,
         size: "1024x1024",
         quality: "standard",
       });
       
-      return response.data[0].url;
+      if (response.data && response.data.length > 0 && response.data[0].url) {
+        return response.data[0].url;
+      }
+      throw new Error('Invalid response from OpenAI API');
     } else {
       // Use mock data for development
       console.log('Using mock image data (no API key)');
