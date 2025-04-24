@@ -14,7 +14,10 @@ import {
   type InsertMessage,
   type AiImage,
   type InsertAiImage,
-  type ProfileSetup
+  type ProfileSetup,
+  type Notification as DbNotification,
+  type InsertNotification,
+  type SavedPost
 } from "@shared/schema";
 import { ConnectionWithUser, UserWithStats, PostWithDetails, CommentWithUser, ChatInfo } from "@shared/types";
 
@@ -81,8 +84,8 @@ export interface IStorage {
   isPostSavedByUser(userId: number, postId: number): Promise<boolean>;
   
   // Notification methods
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  getNotifications(userId: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<DbNotification>;
+  getNotifications(userId: number): Promise<DbNotification[]>;
   markNotificationAsRead(notificationId: number): Promise<void>;
   markAllNotificationsAsRead(userId: number): Promise<void>;
   getUnreadNotificationCount(userId: number): Promise<number>;
@@ -101,7 +104,7 @@ export class MemStorage implements IStorage {
   private messages: Map<number, Message>;
   private aiImages: Map<number, AiImage>;
   private savedPosts: Map<string, SavedPost>; // userId_postId as key
-  private notifications: Map<number, Notification>;
+  private notifications: Map<number, DbNotification>;
   
   private userId: number;
   private postId: number;
@@ -571,9 +574,9 @@ export class MemStorage implements IStorage {
   }
   
   // Notification methods
-  async createNotification(notification: InsertNotification): Promise<Notification> {
+  async createNotification(notification: InsertNotification): Promise<DbNotification> {
     const id = this.notificationId++;
-    const newNotification: Notification = { 
+    const newNotification: DbNotification = { 
       ...notification, 
       id, 
       createdAt: new Date(),
@@ -583,10 +586,14 @@ export class MemStorage implements IStorage {
     return newNotification;
   }
   
-  async getNotifications(userId: number): Promise<Notification[]> {
+  async getNotifications(userId: number): Promise<DbNotification[]> {
     return Array.from(this.notifications.values())
       .filter(notification => notification.userId === userId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return dateB - dateA;
+      });
   }
   
   async markNotificationAsRead(notificationId: number): Promise<void> {

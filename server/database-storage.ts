@@ -35,7 +35,7 @@ import {
   type InsertAiImage,
   type SavedPost,
   type InsertSavedPost,
-  type Notification,
+  type Notification as DbNotification,
   type InsertNotification,
   type ProfileSetup
 } from '@shared/schema';
@@ -650,22 +650,22 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Notification methods
-  async createNotification(notification: InsertNotification): Promise<Notification> {
+  async createNotification(notification: InsertNotification): Promise<DbNotification> {
     const result = await db.insert(notifications)
       .values({
         ...notification,
         isRead: false
       })
       .returning();
-    return result[0] as Notification;
+    return result[0];
   }
   
-  async getNotifications(userId: number): Promise<Notification[]> {
+  async getNotifications(userId: number): Promise<DbNotification[]> {
     const results = await db.select()
       .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
-    return results as Notification[];
+    return results;
   }
   
   async markNotificationAsRead(notificationId: number): Promise<void> {
