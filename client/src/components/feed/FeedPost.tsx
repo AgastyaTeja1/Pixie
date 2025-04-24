@@ -73,13 +73,30 @@ export function FeedPost({ post }: FeedPostProps) {
       
       // Send real-time update via WebSocket
       if (user) {
+        // Send like count update
         sendMessage({
           type: 'like_update',
           payload: {
             postId: post.id,
-            userId: user.id
+            userId: user.id,
+            count: isLiked ? likeCount - 1 : likeCount + 1
           }
         });
+        
+        // Send notification to post owner if this is a like action (not unlike)
+        if (!isLiked && post.userId !== user.id) {
+          sendMessage({
+            type: 'notification',
+            payload: {
+              type: 'like',
+              fromUserId: user.id,
+              fromUsername: user.username,
+              toUserId: post.userId,
+              entityId: post.id,
+              message: `${user.username} liked your post`
+            }
+          });
+        }
       }
     } catch (error) {
       toast({
@@ -104,6 +121,22 @@ export function FeedPost({ post }: FeedPostProps) {
         // Save post
         await apiRequest('POST', `/api/posts/${post.id}/save`);
         setIsSaved(true);
+        
+        // Send notification to post owner if saver is not the post owner
+        if (user && post.userId !== user.id) {
+          sendMessage({
+            type: 'notification',
+            payload: {
+              type: 'save',
+              fromUserId: user.id,
+              fromUsername: user.username,
+              toUserId: post.userId,
+              entityId: post.id,
+              message: `${user.username} saved your post`
+            }
+          });
+        }
+        
         toast({
           title: 'Post saved',
           description: 'Post has been added to your saved collection',
@@ -145,13 +178,33 @@ export function FeedPost({ post }: FeedPostProps) {
 
   const handleShareWithConnection = async (connectionId: number, connectionUsername: string) => {
     try {
-      // Use the WebSocket context instead of creating a new connection
+      if (!user) return;
+      
+      // Share the post
+      await apiRequest('POST', `/api/posts/${post.id}/share`, {
+        recipientId: connectionId
+      });
+      
+      // Send real-time notification via WebSocket
       sendMessage({
         type: 'share_post',
         payload: {
-          fromUserId: user?.id,
+          fromUserId: user.id,
           toUserId: connectionId,
           postId: post.id
+        }
+      });
+      
+      // Send notification to recipient
+      sendMessage({
+        type: 'notification',
+        payload: {
+          type: 'post_share',
+          fromUserId: user.id,
+          fromUsername: user.username,
+          toUserId: connectionId,
+          entityId: post.id,
+          message: `${user.username} shared a post with you`
         }
       });
       
@@ -232,14 +285,31 @@ export function FeedPost({ post }: FeedPostProps) {
       
       // Send real-time update via WebSocket
       if (user) {
+        // Send comment count update
         sendMessage({
           type: 'comment_update',
           payload: {
             postId: post.id,
             userId: user.id,
+            count: commentCount + 1,
             commentId: response && typeof response === 'object' ? response.id : undefined
           }
         });
+        
+        // Send notification to post owner if commenter is not the post owner
+        if (post.userId !== user.id) {
+          sendMessage({
+            type: 'notification',
+            payload: {
+              type: 'comment',
+              fromUserId: user.id,
+              fromUsername: user.username,
+              toUserId: post.userId,
+              entityId: post.id,
+              message: `${user.username} commented on your post: "${comment.length > 30 ? comment.substring(0, 30) + '...' : comment}"`
+            }
+          });
+        }
       }
       
       toast({
