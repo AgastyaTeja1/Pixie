@@ -37,11 +37,15 @@ export async function apiRequest<T = any>(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
+
+interface QueryFnOptions {
   on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
+}
+
+export function getQueryFn<TData>(options: QueryFnOptions): QueryFunction<TData> {
+  const { on401: unauthorizedBehavior } = options;
+  
+  return async ({ queryKey }) => {
     console.log(`Query Request: ${queryKey[0]}`);
     
     try {
@@ -52,7 +56,7 @@ export const getQueryFn: <T>(options: {
       console.log(`Query Response: ${res.status}`, res);
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
+        return null as unknown as TData;
       }
 
       if (!res.ok) {
@@ -63,13 +67,13 @@ export const getQueryFn: <T>(options: {
       
       // Handle empty responses
       if (res.headers.get('Content-Length') === '0') {
-        return {} as T;
+        return {} as unknown as TData;
       }
       
       try {
         // Attempt to parse JSON
         const data = await res.json();
-        return data;
+        return data as TData;
       } catch (jsonError) {
         console.error('Failed to parse JSON response:', jsonError);
         throw new Error('Invalid JSON response from server');
@@ -79,6 +83,7 @@ export const getQueryFn: <T>(options: {
       throw error;
     }
   };
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
