@@ -657,14 +657,15 @@ export class DatabaseStorage implements IStorage {
         isRead: false
       })
       .returning();
-    return result[0];
+    return result[0] as Notification;
   }
   
   async getNotifications(userId: number): Promise<Notification[]> {
-    return db.select()
+    const results = await db.select()
       .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
+    return results as Notification[];
   }
   
   async markNotificationAsRead(notificationId: number): Promise<void> {
