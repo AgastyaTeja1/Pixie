@@ -11,22 +11,29 @@ export async function apiRequest<T = any>(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<T> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
+): Promise<Response> {
+  console.log(`API Request: ${method} ${url}`, data);
   
-  // For methods like DELETE, the response might not have a body
-  if (method === 'DELETE' || res.headers.get('Content-Length') === '0') {
-    return {} as T;
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
+    
+    // Check if the response is ok but don't throw yet - let the caller handle the response
+    if (!res.ok) {
+      console.warn(`API Response not OK: ${res.status} ${res.statusText}`, res);
+    } else {
+      console.log(`API Response OK: ${res.status}`, res);
+    }
+    
+    return res;
+  } catch (error) {
+    console.error(`API Request error: ${error}`);
+    throw error;
   }
-  
-  return await res.json() as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -35,16 +42,42 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    console.log(`Query Request: ${queryKey[0]}`);
+    
+    try {
+      const res = await fetch(queryKey[0] as string, {
+        credentials: "include",
+      });
+      
+      console.log(`Query Response: ${res.status}`, res);
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(`Query error ${res.status}: ${text || res.statusText}`);
+        throw new Error(`${res.status}: ${text || res.statusText}`);
+      }
+      
+      // Handle empty responses
+      if (res.headers.get('Content-Length') === '0') {
+        return {} as T;
+      }
+      
+      try {
+        // Attempt to parse JSON
+        const data = await res.json();
+        return data;
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        throw new Error('Invalid JSON response from server');
+      }
+    } catch (error) {
+      console.error(`Query Request error:`, error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

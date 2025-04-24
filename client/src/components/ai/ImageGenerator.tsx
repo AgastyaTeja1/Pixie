@@ -50,19 +50,44 @@ export function ImageGenerator() {
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     try {
+      console.log('Starting image generation with prompt:', values.prompt);
+      
       const response = await apiRequest('POST', '/api/ai/generate', {
         prompt: values.prompt,
       });
       
-      const data = await response.json();
-      setGeneratedImage(data.imageUrl);
-      setGeneratedImageId(data.id);
+      console.log('Response received:', response);
       
-      toast({
-        title: 'Image generated',
-        description: 'Your image has been successfully created!',
-      });
+      // Get the response as text first for debugging
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      
+      // Parse the JSON manually to handle potential errors
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Processed response data:', data);
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        throw new Error('Invalid JSON response');
+      }
+      
+      if (data && data.imageUrl) {
+        console.log('Setting image URL:', data.imageUrl);
+        setGeneratedImage(data.imageUrl);
+        setGeneratedImageId(data.id);
+        
+        toast({
+          title: 'Image generated',
+          description: 'Your image has been successfully created!',
+        });
+      } else {
+        console.error('Missing data in response:', data);
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
+      console.error('Error generating image:', error);
+      
       toast({
         title: 'Generation failed',
         description: 'Failed to generate the image. Please try again.',

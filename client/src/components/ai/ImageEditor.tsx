@@ -102,10 +102,22 @@ export function ImageEditor() {
       
       console.log('Response received:', response);
       
-      const data = await response.json();
-      console.log('Processed response data:', data);
+      // Get the response as text first for debugging
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      
+      // Parse the JSON manually to handle potential errors
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Processed response data:', data);
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        throw new Error('Invalid JSON response');
+      }
       
       if (data && data.imageUrl) {
+        console.log('Setting image URL:', data.imageUrl);
         setGeneratedImage(data.imageUrl);
         setGeneratedImageId(data.id);
         

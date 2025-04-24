@@ -108,20 +108,45 @@ export function ArtStyles() {
     setIsLoading(true);
     setSelectedStyle(styleId);
     try {
+      console.log('Starting style application with style:', styleId);
+      
       const response = await apiRequest('POST', '/api/ai/style', {
         image: uploadedImage,
         style: styleId,
       });
       
-      const data = await response.json();
-      setGeneratedImage(data.imageUrl);
-      setGeneratedImageId(data.id);
+      console.log('Response received:', response);
       
-      toast({
-        title: 'Style applied',
-        description: `Your image has been transformed with ${styleId} style!`,
-      });
+      // Get the response as text first for debugging
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      
+      // Parse the JSON manually to handle potential errors
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Processed response data:', data);
+      } catch (jsonError) {
+        console.error('Error parsing JSON:', jsonError);
+        throw new Error('Invalid JSON response');
+      }
+      
+      if (data && data.imageUrl) {
+        console.log('Setting image URL:', data.imageUrl);
+        setGeneratedImage(data.imageUrl);
+        setGeneratedImageId(data.id);
+        
+        toast({
+          title: 'Style applied',
+          description: `Your image has been transformed with ${styleId} style!`,
+        });
+      } else {
+        console.error('Missing data in response:', data);
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
+      console.error('Error applying style:', error);
+      
       toast({
         title: 'Style application failed',
         description: 'Failed to apply the art style. Please try again.',
