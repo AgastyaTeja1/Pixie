@@ -165,11 +165,46 @@ export async function applyStyle(imageBase64: string, style: string): Promise<st
     const imageDescription = await getImageDescription(imageBase64);
     console.log('Image description obtained:', imageDescription);
     
+    // Create a style-specific prompt based on the art style requested
+    let stylePrompt = '';
+    
+    switch (style.toLowerCase()) {
+      case 'watercolor':
+        stylePrompt = `Transform this image into a beautiful watercolor painting with soft, translucent colors, gentle brushstrokes, and a dreamy, flowing aesthetic. The watercolor should have characteristic wet edges, color bleeds, and transparent layering typical of the medium. Keep the main subjects and composition from the original intact, but render them with watercolor painting techniques.`;
+        break;
+      case 'oil-painting':
+        stylePrompt = `Recreate this image as a rich, textured oil painting with visible brushwork, impasto technique, and depth. Use the characteristic vibrant colors and techniques of oil painting masters with attention to light and shadow. Maintain the original composition but apply thick paint textures and painterly strokes typical of oil paintings.`;
+        break;
+      case 'pixel-art':
+        stylePrompt = `Convert this image into detailed pixel art style with a limited color palette and visible pixel grid. Use the aesthetic of retro games with deliberate pixelation, sharp edges, and carefully placed individual pixels. Simplify the forms while keeping the essence of the original image's composition.`;
+        break;
+      case 'ghibli':
+        stylePrompt = `Transform this image into the iconic Studio Ghibli animation style with its characteristic whimsical, hand-drawn aesthetic. Use the soft colors, rounded forms, and magical quality typical of Hayao Miyazaki's works. Keep the essence of the original while applying Ghibli's distinctive character design and painterly backgrounds.`;
+        break;
+      case 'cyberpunk':
+        stylePrompt = `Render this image in cyberpunk style with neon lights, high-tech elements, and urban dystopian aesthetic. Use dramatic lighting with blues, purples, and pinks against dark backgrounds. Add futuristic technology elements while maintaining the core composition of the original image.`;
+        break;
+      case 'pop-art':
+        stylePrompt = `Transform this image into pop art style with bold colors, sharp outlines, and halftone dot patterns. Use the iconic aesthetic of artists like Roy Lichtenstein or Andy Warhol with flat, vibrant color fields and comic-book inspired techniques. Keep the main elements but stylize them with pop art's characteristic boldness.`;
+        break;
+      case 'manga':
+        stylePrompt = `Convert this image into Japanese manga style with distinctive line art, dramatic expressions, and characteristic visual language. Use the black and white aesthetic with screen tones (or color if appropriate), simplified backgrounds, and manga-specific visual elements. Maintain the essence while applying manga stylization.`;
+        break;
+      case 'vaporwave':
+        stylePrompt = `Recreate this image in vaporwave aesthetic with its retro-futuristic style, featuring pastel colors (particularly pink and cyan), glitch effects, and 80s/90s visual elements. Incorporate classic vaporwave motifs like ancient sculptures, retro computer graphics, and surreal compositions while keeping the core elements of the original image.`;
+        break;
+      default:
+        stylePrompt = `Transform this image into ${style} style. Maintain the key subjects and composition from the original image, but alter the visual appearance to match the ${style} aesthetic. Make it visually striking with appropriate colors and details.`;
+    }
+    
     // Create a prompt that combines the image description with the requested style
     const enhancedPrompt = `I have an image that shows: ${imageDescription}.
-Please recreate this image in the ${style} artistic style. 
-Maintain the key subjects and composition from the original image, but transform the visual appearance to match the ${style} style.
-Make it visually striking with colors and details typical of ${style} artwork.`;
+
+${stylePrompt}
+
+This is extremely important: Do NOT create a generic image. The result MUST look like the original image but in the requested style. 
+Keep all the main subjects, their positions, and the overall composition exactly the same as the original image.
+Only change the visual style, not the content or composition.`;
     
     console.log('Style prompt length:', enhancedPrompt.length);
     

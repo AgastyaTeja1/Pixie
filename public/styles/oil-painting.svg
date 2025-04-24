@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="oil-texture" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2" seed="5" />
+      <feDisplacementMap in="SourceGraphic" scale="10" />
+      <feComposite operator="in" in2="SourceGraphic" />
+    </filter>
+    <filter id="brush-strokes" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" />
+      <feDisplacementMap in="SourceGraphic" scale="15" />
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" fill="#4a3821" />
+  <g filter="url(#brush-strokes)">
+    <path d="M100,150 C150,100 250,100 300,150 S230,300 150,280 Z" fill="#d58e35" />
+    <path d="M150,100 C200,150 300,120 250,180 S180,280 120,250 Z" fill="#af1e23" />
+    <path d="M180,200 C230,150 280,180 300,220 S250,280 190,260 Z" fill="#3d7e52" />
+    <ellipse cx="150" cy="150" rx="60" ry="40" fill="#d7c797" />
+    <circle cx="240" cy="170" r="30" fill="#2b4367" />
+  </g>
+  <g filter="url(#oil-texture)">
+    <path d="M60,280 C100,260 150,280 200,260 S280,240 350,280 Z" fill="#6b442d" />
+    <rect x="60" y="280" width="280" height="60" fill="#262113" />
+  </g>
+  <text x="200" y="350" text-anchor="middle" fill="#e3d6bf" font-family="Arial, sans-serif" font-size="20" font-weight="bold">Oil Painting Style</text>
+</svg>

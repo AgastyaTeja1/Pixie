@@ -11,48 +11,58 @@ interface ArtStyle {
   id: string;
   name: string;
   imageUrl: string;
+  description: string;
 }
 
+// Art style examples with accurate representative images
 const ART_STYLES: ArtStyle[] = [
   {
     id: 'watercolor',
     name: 'Watercolor',
-    imageUrl: 'https://images.unsplash.com/photo-1563089145-599997674d42?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/watercolor.jpg',
+    description: 'Soft, translucent colors with gentle brushstrokes and a dreamy effect'
   },
   {
     id: 'oil-painting',
     name: 'Oil Painting',
-    imageUrl: 'https://images.unsplash.com/photo-1578301978018-3005759f48f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/oil-painting.jpg',
+    description: 'Rich textures and vibrant colors with visible brushwork and depth'
   },
   {
     id: 'pixel-art',
     name: 'Pixel Art',
-    imageUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/pixel-art.jpg',
+    description: 'Retro aesthetic with visible square pixels and limited color palette'
   },
   {
     id: 'ghibli',
     name: 'Ghibli',
-    imageUrl: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/ghibli.jpg',
+    description: 'Whimsical, colorful animation style inspired by Studio Ghibli films'
   },
   {
     id: 'cyberpunk',
     name: 'Cyberpunk',
-    imageUrl: 'https://images.unsplash.com/photo-1573455494060-c5595004fb6c?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/cyberpunk.jpg',
+    description: 'Futuristic urban scenes with neon lights, technology, and dark atmosphere'
   },
   {
     id: 'pop-art',
     name: 'Pop Art',
-    imageUrl: 'https://images.unsplash.com/photo-1579541591969-45af0f7dff09?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/pop-art.jpg',
+    description: 'Bold colors, patterns, and outlines inspired by comic books and advertisements'
   },
   {
     id: 'manga',
     name: 'Manga',
-    imageUrl: 'https://images.unsplash.com/photo-1560012054-04e5e8d25478?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/manga.jpg',
+    description: 'Japanese comic style with dramatic expressions and distinctive line work'
   },
   {
     id: 'vaporwave',
     name: 'Vaporwave',
-    imageUrl: 'https://images.unsplash.com/photo-1600359756098-8bc52195bbf4?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'
+    imageUrl: '/styles/vaporwave.jpg',
+    description: 'Retro-futuristic aesthetic with pastel colors, glitch effects, and 80s/90s nostalgia'
   }
 ];
 
@@ -366,10 +376,11 @@ export function ArtStyles() {
             {displayedStyles.map((style) => (
               <div 
                 key={style.id}
-                className={`rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition ${
+                className={`rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition relative group ${
                   selectedStyle === style.id && isLoading ? 'ring-2 ring-[#5851DB] opacity-50' : ''
                 }`}
                 onClick={() => handleApplyStyle(style.id)}
+                title={`${style.name}: ${style.description}`}
               >
                 <div className="aspect-w-1 aspect-h-1">
                   <img 
@@ -377,6 +388,9 @@ export function ArtStyles() {
                     alt={style.name} 
                     className="w-full h-full object-cover"
                   />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <p className="text-white text-center text-sm px-2">{style.description}</p>
+                  </div>
                 </div>
                 <div className="p-2 text-center bg-white">
                   <p className="font-medium">
