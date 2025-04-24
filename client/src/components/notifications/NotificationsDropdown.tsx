@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { formatTimeAgo, getInitials } from '@/lib/utils';
 import { NotificationWithUser, WebSocketMessage } from '@shared/types';
+import { DbNotification } from '@shared/schema';
 import { toast } from '@/hooks/use-toast';
 import { WebSocketContext } from '@/context/WebSocketContext';
 import { useAuth } from '@/hooks/use-auth';
@@ -44,7 +45,7 @@ export function NotificationsDropdown() {
   // Check for unread notifications when component mounts
   useEffect(() => {
     if (notifications && notifications.length > 0) {
-      const unreadExists = notifications.some((notification: NotificationWithUser) => !notification.isRead);
+      const unreadExists = notifications.some((notification: NotificationWithUser) => notification.isRead === false);
       setHasUnread(unreadExists);
     }
   }, [notifications]);
@@ -68,15 +69,15 @@ export function NotificationsDropdown() {
       console.log('Accepting connection request, notification ID:', notification.id);
       
       // Mark notification as read
-      if (!notification.isRead) {
+      if (notification.isRead === false) {
         console.log('Marking notification as read...');
         const response = await apiRequest('POST', `/api/notifications/read/${notification.id}`);
         console.log('Mark as read response:', await response.text());
       }
       
       // Accept connection request
-      console.log('Accepting connection from user ID:', notification.fromUserId);
-      const acceptResponse = await apiRequest('POST', `/api/connections/accept/${notification.fromUserId}`);
+      console.log('Accepting connection from user ID:', notification.fromUser.id);
+      const acceptResponse = await apiRequest('POST', `/api/connections/accept/${notification.fromUser.id}`);
       console.log('Accept connection response:', await acceptResponse.text());
       
       // Send real-time websocket notification
@@ -168,7 +169,7 @@ export function NotificationsDropdown() {
       console.log('Handling notification click:', notification);
       
       // Mark notification as read if it's not already
-      if (!notification.isRead) {
+      if (notification.isRead === false) {
         console.log('Marking notification as read, ID:', notification.id);
         try {
           const response = await apiRequest('POST', `/api/notifications/read/${notification.id}`);
@@ -267,7 +268,7 @@ export function NotificationsDropdown() {
                   <span className="font-medium">{getNotificationMessage(notification)}</span>
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {formatTimeAgo(notification.createdAt || new Date())}
+                  {formatTimeAgo(notification.createdAt ? new Date(notification.createdAt) : new Date())}
                 </p>
                 
                 {/* Show accept/reject buttons for connection requests */}

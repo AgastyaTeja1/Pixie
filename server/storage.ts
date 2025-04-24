@@ -15,7 +15,7 @@ import {
   type AiImage,
   type InsertAiImage,
   type ProfileSetup,
-  type Notification as DbNotification,
+  type DbNotification,
   type InsertNotification,
   type SavedPost
 } from "@shared/schema";
