@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatTimeAgo, getInitials } from '@/lib/utils';
-import { PostWithDetails, User } from '@shared/types';
+import { PostWithDetails } from '@shared/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Trash2, User as UserIcon, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';

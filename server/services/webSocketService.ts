@@ -205,7 +205,8 @@ async function broadcastUserStatus(userId: number, status: 'online' | 'offline')
     
     // Notify each connected user about the status change
     connections.forEach(connection => {
-      const connectionWs = userConnections.get(connection.userId);
+      const connectionUserId = connection.user.id;
+      const connectionWs = userConnections.get(connectionUserId);
       if (connectionWs && connectionWs.readyState === WebSocket.OPEN) {
         connectionWs.send(JSON.stringify({
           type: status,
