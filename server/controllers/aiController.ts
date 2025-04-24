@@ -165,7 +165,7 @@ export const saveAiImage = async (req: Request, res: Response) => {
     const currentUserId = req.session.userId!;
     const { id } = req.params;
     
-    console.log(`Saving AI image ${id} to collection for user ${currentUserId}`);
+    console.log(`Saving AI image ${id} for user ${currentUserId}`);
     
     // Validate input
     const result = saveAiImageSchema.safeParse(req.body);
@@ -184,23 +184,12 @@ export const saveAiImage = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'AI image not found' });
     }
     
-    // Create a post with this AI image
-    const post = await storage.createPost({
-      userId: currentUserId,
-      mediaUrl: aiImage.imageUrl,
-      caption: aiImage.prompt || aiImage.style || 'AI-generated image',
-      altText: aiImage.prompt || aiImage.style || 'AI-generated image',
-      location: null
-    });
-    
-    // Add to saved posts
-    await storage.savePost(currentUserId, post.id);
-    
-    console.log(`Successfully saved AI image as post ID: ${post.id}`);
-    
+    // Return the image URL so the client can redirect to the post creation page
     return res.status(200).json({ 
-      message: 'AI image saved to collection',
-      postId: post.id
+      message: 'AI image retrieved successfully',
+      imageUrl: aiImage.imageUrl,
+      prompt: aiImage.prompt,
+      style: aiImage.style
     });
     
   } catch (error) {
@@ -225,23 +214,21 @@ export const saveAiImageDirectly = async (req: Request, res: Response) => {
     
     const { imageUrl, prompt, style } = result.data;
     
-    // Create a post with this AI image
-    const post = await storage.createPost({
+    // Create an AI image entry in the database
+    const aiImage = await storage.createAiImage({
       userId: currentUserId,
-      mediaUrl: imageUrl,
-      caption: prompt || style || 'AI-generated image',
-      altText: prompt || style || 'AI-generated image',
-      location: null
+      prompt: prompt || null,
+      imageUrl,
+      style: style || null,
+      sourceImageUrl: null
     });
     
-    // Add to saved posts
-    await storage.savePost(currentUserId, post.id);
-    
-    console.log(`Successfully saved AI image directly as post ID: ${post.id}`);
+    console.log(`Successfully created AI image entry: ${aiImage.id}`);
     
     return res.status(201).json({ 
-      message: 'AI image saved to collection',
-      postId: post.id
+      message: 'AI image saved successfully',
+      id: aiImage.id,
+      imageUrl: aiImage.imageUrl
     });
     
   } catch (error) {
