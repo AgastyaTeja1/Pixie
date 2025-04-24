@@ -6,7 +6,16 @@ import { formatTimeAgo, getInitials } from '@/lib/utils';
 import { ChatInfo, WebSocketMessage } from '@shared/types';
 import { useChat } from '@/hooks/use-chat';
 import { useAuth } from '@/hooks/use-auth';
-import { Send, Phone, Video, Info, Image, Smile } from 'lucide-react';
+import { 
+  Send, Phone, Video, Info, Image as ImageIcon, 
+  Smile, FileText, MoreHorizontal, Share2 
+} from 'lucide-react';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { toast } from '@/hooks/use-toast';
 
 interface ChatWindowProps {
   selectedChat: ChatInfo;
@@ -17,6 +26,8 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
   const { messages, sendChatMessage, markAsRead, onlineUsers } = useChat();
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachment, setAttachment] = useState<File | null>(null);
   
   const chatMessages = messages[selectedChat.userId] || [];
   
@@ -34,10 +45,68 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
   
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !user) return;
+    if ((!inputMessage.trim() && !attachment) || !user) return;
     
-    sendChatMessage(selectedChat.userId, inputMessage, selectedChat.username);
+    // Handle file attachment if present
+    if (attachment) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const fileData = event.target?.result as string;
+        const fileType = attachment.type;
+        
+        // Send message with attachment
+        sendChatMessage(
+          selectedChat.userId, 
+          inputMessage || 'Sent an attachment', 
+          selectedChat.username,
+          {
+            type: fileType,
+            data: fileData
+          }
+        );
+        
+        // Reset attachment
+        setAttachment(null);
+      };
+      
+      reader.readAsDataURL(attachment);
+    } else {
+      // Send regular text message
+      sendChatMessage(selectedChat.userId, inputMessage, selectedChat.username);
+    }
+    
     setInputMessage('');
+  };
+  
+  const handleAttachmentClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setAttachment(file);
+      toast({
+        title: "File selected",
+        description: `${file.name} ready to send`,
+      });
+    }
+  };
+  
+  const handleSharePost = () => {
+    toast({
+      title: "Share post",
+      description: "Post sharing coming soon!",
+    });
   };
 
   // Filter and sort messages for this chat
@@ -70,10 +139,26 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
           </p>
         </div>
         <div className="ml-auto flex space-x-3">
-          <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#5851DB]">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-gray-500 hover:text-[#5851DB]"
+            onClick={() => toast({
+              title: "Feature coming soon",
+              description: "Voice calling will be available soon"
+            })}
+          >
             <Phone className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#5851DB]">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-gray-500 hover:text-[#5851DB]"
+            onClick={() => toast({
+              title: "Feature coming soon",
+              description: "Video calling will be available soon"
+            })}
+          >
             <Video className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#5851DB]">
@@ -85,7 +170,7 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {chatMessagesForDisplay.length > 0 ? (
           chatMessagesForDisplay.map((message: WebSocketMessage, index: number) => {
-            const { senderId, content, timestamp } = message.payload;
+            const { senderId, content, timestamp, attachment } = message.payload;
             const isCurrentUser = senderId === user?.id;
             
             return (
@@ -105,7 +190,23 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
                       : 'bg-gray-100 rounded-bl-none'
                   }`}
                 >
-                  <p>{content}</p>
+                  {attachment ? (
+                    <>
+                      {attachment.type.startsWith('image/') ? (
+                        <div className="mb-2">
+                          <img src={attachment.data} alt="Attachment" className="rounded-lg max-w-full" />
+                        </div>
+                      ) : (
+                        <div className="mb-2 flex items-center p-2 bg-gray-200 bg-opacity-20 rounded">
+                          <FileText className="h-5 w-5 mr-2" />
+                          <span className="text-sm truncate">Attachment</span>
+                        </div>
+                      )}
+                      {content && <p>{content}</p>}
+                    </>
+                  ) : (
+                    <p>{content}</p>
+                  )}
                 </div>
                 <span className="text-xs text-gray-500 mx-2">
                   {formatTimeAgo(timestamp)}
@@ -124,11 +225,52 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
         <div ref={messagesEndRef} />
       </div>
       
+      {attachment && (
+        <div className="p-2 border-t flex items-center bg-gray-50">
+          <div className="flex-1 truncate">
+            <span className="text-sm">Attachment: {attachment.name}</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-red-500"
+            onClick={() => setAttachment(null)}
+          >
+            Remove
+          </Button>
+        </div>
+      )}
+      
       <form onSubmit={handleSendMessage} className="p-4 border-t">
         <div className="flex items-center">
-          <Button type="button" variant="ghost" size="icon" className="text-gray-500 hover:text-[#5851DB] mr-2">
-            <Image className="h-6 w-6" />
-          </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept="image/*,application/pdf,text/plain,application/msword"
+          />
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="ghost" size="icon" className="text-gray-500 hover:text-[#5851DB] mr-2">
+                <MoreHorizontal className="h-6 w-6" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="top" className="w-48 p-0">
+              <div className="flex flex-col divide-y divide-gray-100">
+                <Button variant="ghost" size="sm" className="w-full justify-start py-2 px-3" onClick={handleAttachmentClick}>
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Image
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start py-2 px-3" onClick={handleSharePost}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share Post
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
           <div className="flex-1 relative">
             <Input
               type="text"
@@ -148,7 +290,7 @@ export function ChatWindow({ selectedChat }: ChatWindowProps) {
           </div>
           <Button 
             type="submit" 
-            disabled={!inputMessage.trim()}
+            disabled={!inputMessage.trim() && !attachment}
             variant="ghost" 
             size="icon" 
             className="ml-2 text-[#5851DB] hover:text-[#E1306C]"

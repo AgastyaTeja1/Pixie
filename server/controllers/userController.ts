@@ -148,6 +148,8 @@ export const acceptConnection = async (req: Request, res: Response) => {
     const { userId } = req.params;
     const followerId = parseInt(userId);
     
+    console.log(`Accepting connection request from user ${followerId} to user ${currentUserId}`);
+    
     // Check if request exists
     const connectionRequest = await storage.getConnection(followerId, currentUserId);
     if (!connectionRequest) {
@@ -179,6 +181,31 @@ export const acceptConnection = async (req: Request, res: Response) => {
       userId: followerId,
       fromUserId: currentUserId
     });
+    
+    // Notify the user via WebSocket if they're online
+    try {
+      const { notifyUser } = require('../services/webSocketService');
+      notifyUser(followerId, {
+        type: 'notification',
+        payload: {
+          type: 'connection_accepted',
+          fromUserId: currentUserId
+        }
+      });
+      
+      // Also send a connection_status update
+      notifyUser(followerId, {
+        type: 'connection_status',
+        payload: {
+          fromUserId: currentUserId,
+          toUserId: followerId,
+          status: 'accepted'
+        }
+      });
+    } catch (wsError) {
+      console.error('WebSocket notification error:', wsError);
+      // Continue even if WebSocket notification fails
+    }
     
     return res.status(200).json({ message: 'Connection accepted' });
     
@@ -243,6 +270,31 @@ export const rejectConnectionRequest = async (req: Request, res: Response) => {
       userId: followerId,
       fromUserId: currentUserId
     });
+    
+    // Notify the user via WebSocket if they're online
+    try {
+      const { notifyUser } = require('../services/webSocketService');
+      notifyUser(followerId, {
+        type: 'notification',
+        payload: {
+          type: 'connection_rejected',
+          fromUserId: currentUserId
+        }
+      });
+      
+      // Also send a connection_status update
+      notifyUser(followerId, {
+        type: 'connection_status',
+        payload: {
+          fromUserId: currentUserId,
+          toUserId: followerId,
+          status: 'rejected'
+        }
+      });
+    } catch (wsError) {
+      console.error('WebSocket notification error:', wsError);
+      // Continue even if WebSocket notification fails
+    }
     
     return res.status(200).json({ message: 'Connection request rejected' });
     
