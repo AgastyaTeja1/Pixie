@@ -37,6 +37,7 @@ type FormValues = z.infer<typeof formSchema>;
 export function ImageEditor() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -282,11 +283,15 @@ export function ImageEditor() {
             
             <Button 
               onClick={() => {
+                if (!generatedImage) return;
                 // Create a post with this image
-                const encodedUrl = encodeURIComponent(generatedImage || '');
-                console.log('Redirecting to post creation with image:', encodedUrl);
-                // Use proper navigation instead of manually creating an anchor
-                window.location.href = `/post?imageUrl=${encodedUrl}`;
+                console.log('Redirecting to post creation with image');
+                
+                // Store the image URL in localStorage to handle the large URL
+                localStorage.setItem('pixie_post_image', generatedImage);
+                
+                // Use the navigate function from wouter for client-side navigation
+                navigate('/post');
               }}
               className="flex-1 pixie-gradient text-white hover:shadow-lg"
             >
