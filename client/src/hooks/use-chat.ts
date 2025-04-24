@@ -11,7 +11,12 @@ export const useChat = () => {
     throw new Error('useChat must be used within a WebSocketProvider');
   }
   
-  const sendChatMessage = (receiverId: number, content: string, receiverUsername: string) => {
+  const sendChatMessage = (
+    receiverId: number, 
+    content: string, 
+    receiverUsername: string,
+    attachment?: { type: string, data: string }
+  ) => {
     if (!user) return;
     
     const message: WebSocketMessage = {
@@ -23,6 +28,10 @@ export const useChat = () => {
         receiverUsername,
         content,
         timestamp: new Date().toISOString(),
+        attachment: attachment ? {
+          type: attachment.type,
+          data: attachment.data
+        } : undefined
       },
     };
     

@@ -67,9 +67,64 @@ export interface ChatInfo {
 }
 
 // WebSocket message types
+export interface MessageAttachment {
+  type: string;
+  data: string;
+}
+
+export interface MessagePayload {
+  senderId: number;
+  senderUsername: string;
+  receiverId: number;
+  receiverUsername: string;
+  content: string;
+  timestamp: string;
+  attachment?: MessageAttachment;
+}
+
+export interface TypingPayload {
+  userId: number;
+  receiverId: number;
+}
+
+export interface ReadPayload {
+  userId: number;
+  senderId: number;
+}
+
+export interface OnlinePayload {
+  userId: number;
+}
+
+export interface OnlineUsersPayload {
+  users: number[];
+}
+
+export interface ConnectionPayload {
+  fromUserId: number;
+  toUserId: number;
+  status?: 'pending' | 'accepted' | 'rejected';
+}
+
+export interface SharePostPayload {
+  fromUserId: number;
+  toUserId: number;
+  postId: number;
+}
+
+export interface NotificationPayload {
+  type: string;
+  fromUserId: number;
+  entityId?: number;
+}
+
 export interface WebSocketMessage {
-  type: 'message' | 'typing' | 'read' | 'online' | 'offline';
-  payload: any;
+  type: 'message' | 'typing' | 'read' | 'online' | 'offline' | 'online-users' | 
+        'connection_request' | 'connection_update' | 'connection_status' | 
+        'notification' | 'share_post';
+  payload: MessagePayload | TypingPayload | ReadPayload | OnlinePayload | 
+          OnlineUsersPayload | ConnectionPayload | SharePostPayload | 
+          NotificationPayload | any;
 }
 
 // AI Image generation types

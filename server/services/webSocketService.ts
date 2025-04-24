@@ -45,8 +45,8 @@ export function setupWebSocketServer(wss: WebSocketServer) {
             
             // Save message to database
             if (senderId && receiverId && content) {
-              // Save attachment if it exists
-              let messageData = {
+              // Create message data object
+              const messageData: any = {
                 senderId,
                 receiverId,
                 content
@@ -54,8 +54,10 @@ export function setupWebSocketServer(wss: WebSocketServer) {
               
               // Handle attachments if they exist
               if (data.payload.attachment) {
-                messageData['attachment'] = data.payload.attachment;
-                messageData['attachmentType'] = data.payload.attachmentType;
+                // Store the attachment data
+                messageData.attachment = data.payload.attachment.data;
+                messageData.attachmentType = data.payload.attachment.type;
+                console.log(`Message includes attachment of type: ${data.payload.attachment.type}`);
               }
               
               await storage.createMessage(messageData);
