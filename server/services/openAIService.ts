@@ -48,20 +48,11 @@ export async function editImage(imageBase64: string, prompt: string): Promise<st
   try {
     // Use OpenAI API if key is available
     if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('dummy')) {
-      // For DALL-E 3, we need to use variants or describe the modifications clearly
-      // We'll include the base64 image in the prompt to contextualize the edit
+      // For DALL-E 3, we need to generate a new image based on the description 
+      // of what we want to edit, since we can't send the image directly for editing
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `
-          I have this specific image that I want you to edit. 
-          The edit I want is: ${prompt}
-          
-          IMPORTANT: DO NOT generate a new random image. Instead, make your edit while preserving the core identity of my original image.
-          For example, if it's a person, keep the same person but add the requested edit.
-          If it's a landscape, keep the same landscape but modify it as requested.
-          
-          Make only the specific changes I requested while keeping everything else the same.
-        `,
+        prompt: `Create an image that looks like ${prompt}. Make it look realistic and high quality.`,
         n: 1,
         size: "1024x1024",
         quality: "standard",
@@ -88,22 +79,10 @@ export async function applyStyle(imageBase64: string, style: string): Promise<st
   try {
     // Use OpenAI API if key is available
     if (process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('dummy')) {
-      // For DALL-E 3, we need to be very explicit about keeping the original image content
+      // Create an image in the requested style
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `
-          I have this specific image that I want you to transform into ${style} style.
-          
-          IMPORTANT: You must preserve the exact same content as the original image - same objects, same people, same composition.
-          Do NOT create a new random image of ${style} style.
-          Instead, apply the ${style} artistic style to the EXISTING image I've provided, maintaining all subject matter.
-          
-          For example:
-          - If it's a photo of a person, keep the same person in the same pose, but render them in ${style} style
-          - If it's a landscape, keep the same landscape features but render them in ${style} style
-          
-          The final result should be clearly recognizable as the original image, just with ${style} style applied.
-        `,
+        prompt: `Create a beautiful and artistic image in ${style} style. Make it vibrant and detailed.`,
         n: 1,
         size: "1024x1024",
         quality: "standard",
