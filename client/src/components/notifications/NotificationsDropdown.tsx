@@ -130,6 +130,18 @@ export function NotificationsDropdown() {
       const rejectResponse = await apiRequest('POST', `/api/connections/reject/${notification.fromUserId}`);
       console.log('Reject connection response:', await rejectResponse.text());
       
+      // Send real-time websocket notification
+      if (user) {
+        sendMessage({
+          type: 'connection_status',
+          payload: {
+            fromUserId: user.id,
+            toUserId: notification.fromUserId,
+            status: 'rejected'
+          }
+        });
+      }
+      
       // Refresh notifications, connection status, and chat connections
       console.log('Refreshing notifications and connection status...');
       await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
