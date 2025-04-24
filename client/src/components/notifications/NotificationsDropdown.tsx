@@ -86,7 +86,7 @@ export function NotificationsDropdown() {
           type: 'connection_status',
           payload: {
             fromUserId: user.id,
-            toUserId: notification.fromUserId,
+            toUserId: notification.fromUser.id,
             status: 'accepted'
           }
         });
@@ -120,15 +120,15 @@ export function NotificationsDropdown() {
       console.log('Rejecting connection request, notification ID:', notification.id);
       
       // Mark notification as read
-      if (!notification.isRead) {
+      if (notification.isRead === false) {
         console.log('Marking notification as read...');
         const readResponse = await apiRequest('POST', `/api/notifications/read/${notification.id}`);
         console.log('Mark as read response:', await readResponse.text());
       }
       
       // Reject connection request
-      console.log('Rejecting connection from user ID:', notification.fromUserId);
-      const rejectResponse = await apiRequest('POST', `/api/connections/reject/${notification.fromUserId}`);
+      console.log('Rejecting connection from user ID:', notification.fromUser.id);
+      const rejectResponse = await apiRequest('POST', `/api/connections/reject/${notification.fromUser.id}`);
       console.log('Reject connection response:', await rejectResponse.text());
       
       // Send real-time websocket notification
@@ -137,7 +137,7 @@ export function NotificationsDropdown() {
           type: 'connection_status',
           payload: {
             fromUserId: user.id,
-            toUserId: notification.fromUserId,
+            toUserId: notification.fromUser.id,
             status: 'rejected'
           }
         });
@@ -254,7 +254,7 @@ export function NotificationsDropdown() {
           notifications.map((notification: NotificationWithUser) => (
             <DropdownMenuItem
               key={notification.id}
-              className={`cursor-pointer flex items-start p-3 hover:bg-gray-50 ${!notification.isRead ? 'bg-blue-50' : ''}`}
+              className={`cursor-pointer flex items-start p-3 hover:bg-gray-50 ${notification.isRead === false ? 'bg-blue-50' : ''}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <Avatar className="h-10 w-10 mr-3 flex-shrink-0">
